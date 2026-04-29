@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.coworking.controller.BookingController">
+    <center>
+        <TableView fx:id="bookingsTable" prefWidth="900.0" prefHeight="600.0">
+            <columns>
+                <TableColumn fx:id="workspaceNameColumn" text="Workspace Name" prefWidth="260.0"/>
+                <TableColumn fx:id="typeColumn" text="Type" prefWidth="170.0"/>
+                <TableColumn fx:id="priceColumn" text="Price" prefWidth="130.0"/>
+                <TableColumn fx:id="bookingTimeColumn" text="Booking Time" prefWidth="220.0"/>
+            </columns>
+        </TableView>
+    </center>
+</BorderPane>
+

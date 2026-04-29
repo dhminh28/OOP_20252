@@ -1,0 +1,43 @@
+.card {
+    -fx-background-color: white;
+    background-color: white;
+    -fx-background-radius: 15;
+    border-radius: 15;
+    -fx-border-radius: 15;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 10, 0.15, 0, 2);
+    -fx-padding: 12;
+    padding: 12;
+    -fx-transition: all 180ms ease;
+    transition: all 180ms ease;
+}
+
+.card:hover {
+    /* Subtle zoom-in with a very soft shadow */
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.12), 14, 0.18, 0, 4);
+}
+
+/* Style the "Book Now" button inside each workspace card */
+.card .button {
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #4CAF50 0%, #2E7D32 100%);
+    background-color: linear-gradient(from 0% 0% to 0% 100%, #4CAF50 0%, #2E7D32 100%);
+    -fx-background-radius: 10;
+    border-radius: 10;
+    -fx-background-insets: 0;
+    -fx-text-fill: white;
+    color: white;
+    -fx-font-weight: bold;
+    font-weight: bold;
+    -fx-padding: 8 14 8 14;
+    padding: 8 14 8 14;
+}
+
+.card .button:hover {
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #66BB6A 0%, #2E7D32 100%);
+    background-color: linear-gradient(from 0% 0% to 0% 100%, #66BB6A 0%, #2E7D32 100%);
+}
+
+.card .button:pressed {
+    -fx-translate-y: 1;
+}
