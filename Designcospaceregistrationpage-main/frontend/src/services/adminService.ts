@@ -1,4 +1,5 @@
 import { apiFetch } from './api';
+import type { PageResponse } from '../types/pagination';
 
 export interface MonthlyRevenue {
   period: string;
@@ -17,6 +18,29 @@ export interface DashboardSummary {
   occupancyRate: number;
   monthlyRevenue: MonthlyRevenue[];
   bookingStatusSummary: BookingStatusSummary[];
+}
+
+export interface AdminBooking {
+  id: number;
+  memberId: number;
+  memberName: string;
+  memberEmail: string;
+  workspaceId: number;
+  workspaceName: string;
+  startTime: string;
+  endTime: string;
+  totalAmount: number;
+  status: 'PENDING' | 'SUCCESS' | 'CONFIRMED' | 'CANCELLED';
+  note?: string | null;
+}
+
+export interface AdminUser {
+  id: number;
+  fullName: string;
+  email: string;
+  phone?: string | null;
+  role: 'MEMBER' | 'ADMIN';
+  createdAt: string;
 }
 
 interface BackendDashboardSummary {
@@ -45,4 +69,29 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       count: Number(item.count),
     })),
   };
+}
+
+export async function getAdminBookings(query: { page?: number; size?: number } = {}) {
+  const params = new URLSearchParams();
+  params.set('page', String(query.page ?? 0));
+  params.set('size', String(query.size ?? 10));
+  params.set('sort', 'startTime,desc');
+
+  const page = await apiFetch<PageResponse<AdminBooking>>(`/admin/bookings?${params.toString()}`);
+  return {
+    ...page,
+    content: page.content.map((booking) => ({
+      ...booking,
+      totalAmount: Number(booking.totalAmount),
+    })),
+  };
+}
+
+export async function getAdminUsers(query: { page?: number; size?: number } = {}) {
+  const params = new URLSearchParams();
+  params.set('page', String(query.page ?? 0));
+  params.set('size', String(query.size ?? 10));
+  params.set('sort', 'createdAt,desc');
+
+  return apiFetch<PageResponse<AdminUser>>(`/admin/users?${params.toString()}`);
 }

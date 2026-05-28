@@ -1,12 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Calendar, Camera, Loader2 } from 'lucide-react';
-import { BookingHistory } from '../components/profile/BookingHistory';
-import { SpendingChart } from '../components/profile/SpendingChart';
+import { Calendar, Camera } from 'lucide-react';
 import { WalletCard } from '../components/profile/WalletCard';
-import { getMyBookings } from '../services/bookingService';
 import { useAuth } from '../hooks/useAuth';
-import { vnd } from '../utils/formatCurrency';
-import type { Booking, BookingHistoryItem } from '../types/booking';
 
 const card: React.CSSProperties = {
   backgroundColor: '#FFFFFF',
@@ -34,12 +28,6 @@ const readonlyInput: React.CSSProperties = {
   border: '1px solid #E5E7EB',
 };
 
-const CHART_SEGMENTS = [
-  { key: 'meeting', label: 'Meeting', color: '#7C3AED', pct: 50, a1: 1, a2: 179 },
-  { key: 'private', label: 'Private', color: '#D97706', pct: 30, a1: 181, a2: 287 },
-  { key: 'hotdesk', label: 'Hot Desk', color: '#3B82F6', pct: 20, a1: 289, a2: 359 },
-];
-
 interface ProfileScreenProps {
   balance: number;
   onTopUp: () => void;
@@ -47,32 +35,6 @@ interface ProfileScreenProps {
 
 export function ProfileScreen({ balance, onTopUp }: ProfileScreenProps) {
   const { user } = useAuth();
-  const [activePage, setActivePage] = useState(1);
-  const [bookingTotalPages, setBookingTotalPages] = useState(0);
-  const [bookingTotalElements, setBookingTotalElements] = useState(0);
-  const [bookings, setBookings] = useState<BookingHistoryItem[]>([]);
-  const [loadingBookings, setLoadingBookings] = useState(true);
-  const [bookingError, setBookingError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadBookings = async () => {
-      setLoadingBookings(true);
-      setBookingError(null);
-      try {
-        const result = await getMyBookings({ page: activePage - 1, size: 5 });
-        setBookings(result.content.map(mapBookingHistory));
-        setBookingTotalPages(result.totalPages);
-        setBookingTotalElements(result.totalElements);
-      } catch (error) {
-        setBookingError(error instanceof Error ? error.message : 'Khong the tai lich su booking');
-      } finally {
-        setLoadingBookings(false);
-      }
-    };
-
-    void loadBookings();
-  }, [activePage]);
-
   const initials = (user?.name ?? 'Member')
     .split(' ')
     .filter(Boolean)
@@ -81,10 +43,17 @@ export function ProfileScreen({ balance, onTopUp }: ProfileScreenProps) {
     .join('')
     .toUpperCase();
 
-  const totalSpent = bookings.reduce((sum, booking) => sum + parseVnd(booking.amt), 0);
-
   return (
-    <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '28px 24px 72px' }}>
+    <main style={{ maxWidth: '900px', margin: '0 auto', padding: '28px 24px 72px' }}>
+      <div style={{ marginBottom: '18px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#111111', marginBottom: '6px' }}>
+          Ho so ca nhan
+        </h1>
+        <p style={{ fontSize: '14px', color: '#6B7280' }}>
+          Quan ly thong tin tai khoan va so du vi cua ban.
+        </p>
+      </div>
+
       <div style={{ ...card, padding: '24px', marginBottom: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
           <span style={{ fontSize: '16px', fontWeight: '700', color: '#111111' }}>Thong tin ca nhan</span>
@@ -152,87 +121,6 @@ export function ProfileScreen({ balance, onTopUp }: ProfileScreenProps) {
       </div>
 
       <WalletCard balance={balance} onTopUp={onTopUp} />
-
-      <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '16px', alignItems: 'start' }}>
-        <div>
-          {bookingError && (
-            <div style={{ ...card, padding: '12px 14px', color: '#B91C1C', backgroundColor: '#FEF2F2', marginBottom: '12px', fontSize: '13px' }}>
-              {bookingError}
-            </div>
-          )}
-          {loadingBookings ? (
-            <div style={{ ...card, padding: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#6B7280' }}>
-              <Loader2 size={16} />
-              Dang tai lich su booking...
-            </div>
-          ) : (
-            <BookingHistory
-              bookings={bookings}
-              activePage={activePage}
-              totalPages={bookingTotalPages}
-              onPageChange={setActivePage}
-            />
-          )}
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <SpendingChart segments={CHART_SEGMENTS} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            {[
-              { label: 'Tong dat cho', main: String(bookingTotalElements) },
-              { label: 'Chi tieu trang nay', main: `VND ${vnd(totalSpent)}` },
-            ].map((stat) => (
-              <div key={stat.label} style={{ ...card, padding: '14px', textAlign: 'center' }}>
-                <p style={{ fontSize: '11px', color: '#9CA3AF', marginBottom: '6px', fontWeight: '500', lineHeight: 1.3 }}>{stat.label}</p>
-                <p style={{ fontSize: '16px', fontWeight: '700', color: '#111111', lineHeight: 1.2 }}>
-                  {stat.main}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </main>
   );
-}
-
-function mapBookingHistory(booking: Booking): BookingHistoryItem {
-  return {
-    room: booking.workspaceName ?? `Workspace #${booking.workspaceId}`,
-    addr: `Workspace #${booking.workspaceId}`,
-    time: `${formatDateTime(booking.startTime)}-${formatTime(booking.endTime)}`,
-    dur: `${calculateDurationHours(booking.startTime, booking.endTime)} gio`,
-    amt: `VND ${vnd(booking.totalAmount)}`,
-    status: booking.status,
-  };
-}
-
-function formatDateTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')} ${formatTime(value)}`;
-}
-
-function formatTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value.slice(11, 16);
-  }
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-}
-
-function calculateDurationHours(start: string, end: string) {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-    return 0;
-  }
-  return Math.max(Math.ceil((endDate.getTime() - startDate.getTime()) / 3_600_000), 0);
-}
-
-function parseVnd(value: string) {
-  const numeric = value.replace(/\D/g, '');
-  return numeric ? Number(numeric) : 0;
 }

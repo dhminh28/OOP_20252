@@ -1,8 +1,66 @@
 # CoSpace - Co-working Space Management System
 
-CoSpace is a full-stack web application for managing and booking co-working spaces. It was built as an Object-Oriented Programming project with a Java Spring Boot backend, a React frontend, PostgreSQL persistence, Flyway database migrations, JWT authentication, wallet payments, booking conflict validation, and an admin dashboard.
+![Java](https://img.shields.io/badge/Java-17-blue)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-brightgreen)
+![React](https://img.shields.io/badge/React-18-61DAFB)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
 
-The project is organized as a monorepo so evaluators can run the frontend, backend, and database together with Docker Compose.
+CoSpace is a full-stack co-working space management and booking platform built for an Object-Oriented Programming project. The system includes member authentication, workspace browsing, booking conflict validation, wallet-based payments, cancellation flow, admin management screens, PostgreSQL persistence, Flyway migrations, Swagger API documentation, Docker Compose, and CI automation.
+
+The backend is designed around Java OOP principles and layered Spring Boot architecture. The frontend is a React + Vite application that consumes real backend APIs instead of static mock data.
+
+## Table of Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Database Design](#database-design)
+- [Getting Started](#getting-started)
+- [Demo Accounts](#demo-accounts)
+- [API Documentation](#api-documentation)
+- [Useful Commands](#useful-commands)
+- [Testing and CI](#testing-and-ci)
+
+## Features
+
+### Member Features
+
+- Register and login with JWT authentication.
+- Browse workspace list with pagination and filtering.
+- Filter workspaces by type, minimum capacity, and maximum price.
+- View workspace details before booking.
+- Create bookings with server-side conflict validation.
+- Pay for bookings using an internal wallet balance.
+- Recharge wallet balance.
+- View personal booking history.
+- Cancel bookings and save cancellation reason.
+- View profile and wallet information separately from booking history.
+
+### Admin Features
+
+- Admin-only dashboard protected by role-based access control.
+- View revenue, booking, member, and occupancy metrics.
+- View revenue chart and booking status chart.
+- Manage workspaces: create, update, delete, and list records from PostgreSQL.
+- View all bookings across members.
+- View all registered users.
+- View operational reports.
+- View runtime/system settings panel.
+
+### Backend Features
+
+- Stateless Spring Security with JWT.
+- BCrypt password hashing.
+- Global exception handling with consistent JSON responses.
+- Transactional booking and wallet payment flow.
+- Booking conflict detection before wallet deduction.
+- Wallet transaction records for recharge and payment.
+- Spring Cache for public workspace queries.
+- Async email notification service for successful bookings.
+- Request logging interceptor with response time tracking.
+- Swagger UI for manual API testing.
 
 ## Tech Stack
 
@@ -10,10 +68,10 @@ The project is organized as a monorepo so evaluators can run the frontend, backe
 
 - React 18
 - Vite
-- Recharts for dashboard charts
-- Lucide React for icons
-- Custom CSS styling
-- Tailwind CSS note: the project was originally scaffolded from a Tailwind-ready UI template, but unused Tailwind dependencies were removed during cleanup. Re-add Tailwind only if utility-class styling is needed again.
+- Recharts
+- Lucide React
+- TypeScript
+- Custom CSS-in-TS styling
 
 ### Backend
 
@@ -22,123 +80,217 @@ The project is organized as a monorepo so evaluators can run the frontend, backe
 - Spring Web
 - Spring Security
 - Spring Data JPA
+- Spring Validation
 - Spring Cache
-- Spring Mail with async notification support
-- JJWT for JWT generation and validation
-- Springdoc OpenAPI / Swagger UI
+- Spring Mail
+- JJWT
+- Springdoc OpenAPI
 
-### Database and Infrastructure
+### Database and DevOps
 
-- PostgreSQL
+- PostgreSQL 16
 - Flyway migrations
-- Docker and Docker Compose
+- Docker
+- Docker Compose
+- GitHub Actions CI
 
-## Key Features
+### Testing
 
-- JWT authentication with login and registration APIs.
-- Stateless Spring Security filter chain.
-- Role-ready user model for member and admin accounts.
-- Workspace listing with pagination, filtering, and caching.
-- Advanced workspace filtering by type, minimum capacity, and maximum price.
-- Real-time booking conflict check before payment.
-- Transactional wallet deduction and wallet transaction records.
-- Booking creation with rollback if payment fails.
-- Async booking confirmation email service.
-- Admin dashboard with revenue, user, booking, and chart statistics.
-- Global exception handler with consistent JSON error responses.
-- Request logging interceptor for API response-time monitoring.
-- Swagger UI for manual API testing.
+- JUnit 5
+- Mockito
+- Spring Boot Test
+
+## Architecture
+
+CoSpace follows a layered monorepo architecture:
+
+```txt
+Frontend React
+    -> API service layer
+    -> Spring Boot REST controllers
+    -> Service layer business logic
+    -> Spring Data JPA repositories
+    -> PostgreSQL database
+```
+
+Backend package responsibilities:
+
+- `controller`: REST API endpoints.
+- `service`: Business contracts.
+- `service.impl`: Business implementation and transactions.
+- `repository`: Spring Data JPA persistence.
+- `entity`: OOP domain model.
+- `dto.request`: Request DTOs.
+- `dto.response`: Response DTOs.
+- `security`: JWT provider and authentication filter.
+- `exception`: Custom exceptions and global handler.
+- `config`: Security, CORS, OpenAPI, async, caching, and web config.
+
+OOP design highlights:
+
+- `User` is the base class for `Member` and `Admin`.
+- `Workspace` is the base class for `HotDesk`, `MeetingRoom`, and `PrivateOffice`.
+- Business behavior such as workspace price calculation is encapsulated in domain classes.
+- Booking, wallet, workspace, and admin logic are separated into dedicated services.
 
 ## Project Structure
 
 ```txt
 .
-├── backend/                  Spring Boot backend
-│   ├── src/main/java/         Java source code
-│   ├── src/main/resources/    application.yml and Flyway migrations
-│   └── src/test/java/         JUnit and Mockito tests
-├── frontend/                 React + Vite frontend
-│   ├── src/                  React pages, components, services, hooks, types
-│   └── package.json
-├── database/postgresql/      Optional pgAdmin helper script
-├── docker-compose.yml        PostgreSQL + backend + frontend services
-└── package.json              Root helper scripts
+|-- backend/
+|   |-- src/main/java/com/cospace/
+|   |   |-- config/
+|   |   |-- controller/
+|   |   |-- dto/
+|   |   |-- entity/
+|   |   |-- enums/
+|   |   |-- exception/
+|   |   |-- repository/
+|   |   |-- security/
+|   |   |-- service/
+|   |   `-- CospaceApplication.java
+|   |-- src/main/resources/
+|   |   |-- application.yml
+|   |   `-- db/migration/
+|   `-- src/test/java/
+|
+|-- frontend/
+|   |-- src/
+|   |   |-- app/
+|   |   |-- assets/
+|   |   |-- components/
+|   |   |-- context/
+|   |   |-- hooks/
+|   |   |-- pages/
+|   |   |-- services/
+|   |   |-- styles/
+|   |   |-- types/
+|   |   `-- utils/
+|   `-- package.json
+|
+|-- .github/workflows/ci.yml
+|-- docker-compose.yml
+|-- package.json
+`-- README.md
 ```
 
-## Prerequisites
+## Database Design
+
+Flyway migrations are stored in:
+
+```txt
+backend/src/main/resources/db/migration/
+```
+
+Main database areas:
+
+- Auth: `users`
+- Workspace: `workspaces`, `workspace_equipment`
+- Booking: `bookings`
+- Wallet: `wallets`, `wallet_transactions`
+- Admin dashboard: aggregates from users, bookings, workspaces, and wallet transactions
+
+Important relationships:
+
+- One member has one wallet.
+- One member can have many bookings.
+- One workspace can have many bookings.
+- One wallet can have many wallet transactions.
+- Workspace types are modeled through Java inheritance.
+
+## Getting Started
+
+### Prerequisites
 
 Install:
 
 - Docker
 - Docker Compose
 
-Optional for local development outside Docker:
+Optional for local development:
 
 - Java 17
 - Maven
-- Node.js 18+
+- Node.js 20+
 - PostgreSQL or pgAdmin4
 
-## Getting Started
+### Run With Docker Compose
 
-From the repository root, run:
+From the repository root:
 
 ```bash
 docker compose up --build
 ```
 
-Docker Compose starts:
+Services:
 
-- PostgreSQL on `localhost:5432`
-- Spring Boot backend on `http://localhost:8080/api`
-- React frontend on `http://localhost:5173`
+```txt
+Frontend:  http://localhost:5173
+Backend:   http://localhost:8080/api
+Swagger:   http://localhost:8080/api/swagger-ui/index.html
+Postgres:  localhost:5432
+Database:  cospace_db
+User:      postgres
+Password:  postgres
+```
 
-Flyway automatically creates and seeds the database when the backend starts.
-
-To stop the stack:
+Stop services:
 
 ```bash
 docker compose down
 ```
 
-To remove the PostgreSQL volume and reset all seeded data:
+Reset database volume:
 
 ```bash
 docker compose down -v
+docker compose up --build
 ```
 
-Then run `docker compose up --build` again.
+## Demo Accounts
 
-## Demo Credentials
-
-The default accounts are created by:
-
-```txt
-backend/src/main/resources/db/migration/V2__seed_demo_data.sql
-```
+These accounts are seeded by Flyway migration `V2__seed_demo_data.sql`.
 
 | Role | Email | Password |
 | --- | --- | --- |
 | Member | `member@cospace.vn` | `123456` |
 | Admin | `admin@cospace.vn` | `123456` |
 
-The demo member wallet starts with `500000` VND.
+The demo member starts with `500000` VND wallet balance.
 
 ## API Documentation
 
-Swagger UI is available after the backend starts:
+Swagger UI:
 
 ```txt
 http://localhost:8080/api/swagger-ui/index.html
 ```
 
-Use the login endpoint to obtain a JWT, then click **Authorize** in Swagger UI and paste:
+Use `POST /api/auth/login` to get a JWT, then authorize requests with:
 
 ```txt
-Bearer <your-token>
+Bearer <token>
 ```
 
-## Useful Local Commands
+Core API groups:
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `GET /api/workspaces`
+- `POST /api/workspaces`
+- `PUT /api/workspaces/{id}`
+- `DELETE /api/workspaces/{id}`
+- `POST /api/bookings`
+- `GET /api/bookings/my`
+- `PATCH /api/bookings/{id}/cancel`
+- `GET /api/wallet`
+- `POST /api/wallet/recharge`
+- `GET /api/admin/dashboard`
+- `GET /api/admin/bookings`
+- `GET /api/admin/users`
+
+## Useful Commands
 
 Run backend tests:
 
@@ -147,41 +299,50 @@ cd backend
 mvn test
 ```
 
-Build the frontend:
+Build frontend:
 
 ```bash
 npm run build:frontend
 ```
 
-Run the frontend dev server:
+Run frontend dev server:
 
 ```bash
 npm run dev:frontend
 ```
 
-Run the backend locally:
+Run backend locally:
 
 ```bash
 npm run dev:backend
 ```
 
-For local backend execution, provide the environment variables shown in `.env.example` or `backend/.env.example`.
+## Testing and CI
 
-## Core API Areas
+The project includes JUnit and Mockito tests for:
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/workspaces`
-- `GET /api/workspaces/{id}`
-- `POST /api/bookings`
-- `GET /api/bookings/my`
-- `GET /api/wallet`
-- `POST /api/wallet/recharge`
-- `GET /api/admin/dashboard`
+- Booking conflict validation.
+- Booking cancellation.
+- Wallet payment and insufficient balance cases.
+- Price calculation.
+- Admin dashboard aggregation.
 
-## Notes for Evaluation
+GitHub Actions workflow:
 
-- The backend is the primary OOP layer: entities model users, members, admins, workspaces, bookings, wallets, and transactions.
-- Workspace types use inheritance: `Workspace`, `HotDesk`, `MeetingRoom`, and `PrivateOffice`.
+```txt
+.github/workflows/ci.yml
+```
+
+CI runs:
+
+- Maven backend tests.
+- Frontend dependency install and Vite build.
+- Docker Compose build validation.
+
+## Notes for Evaluators
+
+- This project was built as a solo OOP-focused full-stack application.
+- The Java backend is the primary OOP layer.
+- PostgreSQL and Flyway are the source of truth for schema and seed data.
 - Booking and wallet operations are transactional to protect business consistency.
-- Flyway migrations are the source of truth for schema and demo seed data.
+- Admin and workspace write operations are protected by role-based access control.

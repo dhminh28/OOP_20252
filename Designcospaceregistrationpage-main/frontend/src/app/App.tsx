@@ -7,11 +7,12 @@ import { SpacesScreen } from '../pages/SpacesScreen';
 import { BookingFormScreen } from '../pages/BookingFormScreen';
 import { AdminDashboard } from '../pages/AdminDashboard';
 import { ProfileScreen } from '../pages/ProfileScreen';
+import { MyBookingsScreen } from '../pages/MyBookingsScreen';
 import { getBalance, recharge } from '../services/walletService';
 import { useAuth } from '../hooks/useAuth';
 import type { Workspace } from '../types/workspace';
 
-type ActiveScreen = 'register' | 'login' | 'spaces' | 'profile' | 'booking-form' | 'admin';
+type ActiveScreen = 'register' | 'login' | 'spaces' | 'my-bookings' | 'profile' | 'booking-form' | 'admin';
 
 export default function App() {
   const { token, clearSession } = useAuth();
@@ -25,7 +26,7 @@ export default function App() {
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
 
   const showMemberShell = !['admin', 'register', 'login'].includes(activeScreen);
-  const activeNav = activeScreen === 'spaces' ? 'spaces' : 'booking';
+  const activeNav = activeScreen === 'my-bookings' ? 'bookings' : activeScreen === 'spaces' || activeScreen === 'booking-form' ? 'spaces' : null;
 
   const refreshWallet = async () => {
     if (!token) {
@@ -67,6 +68,13 @@ export default function App() {
     setActiveScreen('booking-form');
   };
 
+  const handleLogout = () => {
+    clearSession();
+    setSelectedWorkspace(null);
+    setShowTopUpModal(false);
+    setActiveScreen('login');
+  };
+
   const handleTopUp = async (amount: number) => {
     const wallet = await recharge(amount);
     setBalance(wallet.balance);
@@ -90,7 +98,7 @@ export default function App() {
       )}
 
       {activeScreen === 'admin' && (
-        <AdminDashboard onLogout={() => setActiveScreen('login')} />
+        <AdminDashboard onLogout={handleLogout} />
       )}
 
       {showMemberShell && (
@@ -99,8 +107,10 @@ export default function App() {
             activeNav={activeNav}
             balance={balance}
             onGoToSpaces={() => setActiveScreen('spaces')}
+            onGoToBookings={() => setActiveScreen('my-bookings')}
             onGoToProfile={() => setActiveScreen('profile')}
             onOpenWallet={() => setShowTopUpModal(true)}
+            onLogout={handleLogout}
           />
 
           {walletError && (
@@ -125,6 +135,10 @@ export default function App() {
 
           {activeScreen === 'profile' && (
             <ProfileScreen balance={balance} onTopUp={() => setShowTopUpModal(true)} />
+          )}
+
+          {activeScreen === 'my-bookings' && (
+            <MyBookingsScreen />
           )}
         </div>
       )}

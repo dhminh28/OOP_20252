@@ -15,6 +15,18 @@ interface BackendWorkspace {
   equipment: string[];
 }
 
+export interface WorkspaceMutationPayload {
+  name: string;
+  type: WorkspaceType;
+  address: string;
+  floor?: string;
+  capacity: number;
+  pricePerHour: number;
+  status?: WorkspaceStatus;
+  imageUrl?: string;
+  equipment?: string[];
+}
+
 export interface WorkspaceQuery {
   page?: number;
   size?: number;
@@ -52,18 +64,20 @@ export async function getWorkspaceById(id: number) {
   return mapWorkspace(workspace);
 }
 
-export function createWorkspace(payload: Omit<Workspace, 'id'>) {
-  return apiFetch<Workspace>('/workspaces', {
+export async function createWorkspace(payload: WorkspaceMutationPayload) {
+  const workspace = await apiFetch<BackendWorkspace>('/workspaces', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(toBackendWorkspacePayload(payload)),
   });
+  return mapWorkspace(workspace);
 }
 
-export function updateWorkspace(id: number, payload: Partial<Workspace>) {
-  return apiFetch<Workspace>(`/workspaces/${id}`, {
+export async function updateWorkspace(id: number, payload: WorkspaceMutationPayload) {
+  const workspace = await apiFetch<BackendWorkspace>(`/workspaces/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(toBackendWorkspacePayload(payload)),
   });
+  return mapWorkspace(workspace);
 }
 
 export function deleteWorkspace(id: number) {
@@ -79,6 +93,8 @@ function mapWorkspace(workspace: BackendWorkspace): Workspace {
     id: workspace.id,
     name: workspace.name,
     type,
+    address: workspace.address,
+    rawFloor: workspace.floor ?? '',
     floor: formatLocation(workspace.floor, workspace.address),
     capacity: workspace.capacity ?? 0,
     pricePerHour: Number(workspace.pricePerHour),
@@ -104,6 +120,32 @@ function toBackendType(type: WorkspaceType): BackendWorkspace['type'] {
     'Private Office': 'PRIVATE_OFFICE',
   };
   return map[type];
+}
+
+function toBackendStatus(status: WorkspaceStatus | undefined): BackendWorkspace['status'] | undefined {
+  if (!status) {
+    return undefined;
+  }
+  const map: Record<WorkspaceStatus, BackendWorkspace['status']> = {
+    available: 'AVAILABLE',
+    busy: 'BUSY',
+    maintenance: 'MAINTENANCE',
+  };
+  return map[status];
+}
+
+function toBackendWorkspacePayload(payload: WorkspaceMutationPayload) {
+  return {
+    name: payload.name,
+    type: toBackendType(payload.type),
+    address: payload.address,
+    floor: payload.floor,
+    capacity: payload.capacity,
+    pricePerHour: payload.pricePerHour,
+    status: toBackendStatus(payload.status),
+    imageUrl: payload.imageUrl,
+    equipment: payload.equipment ?? [],
+  };
 }
 
 function mapStatus(status: BackendWorkspace['status']): WorkspaceStatus {

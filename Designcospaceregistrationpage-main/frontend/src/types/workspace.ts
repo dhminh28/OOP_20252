@@ -5,6 +5,8 @@ export interface Workspace {
   id: number;
   name: string;
   type: WorkspaceType;
+  address?: string;
+  rawFloor?: string;
   floor: string;
   capacity: number;
   pricePerHour: number;

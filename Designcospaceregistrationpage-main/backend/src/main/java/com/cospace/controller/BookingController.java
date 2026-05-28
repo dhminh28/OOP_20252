@@ -1,6 +1,7 @@
 package com.cospace.controller;
 
 import com.cospace.config.OpenApiConfig;
+import com.cospace.dto.request.BookingCancelRequest;
 import com.cospace.dto.request.BookingRequest;
 import com.cospace.dto.response.ApiResponse;
 import com.cospace.dto.response.BookingResponse;
@@ -86,7 +87,12 @@ public class BookingController {
     @PatchMapping("/{id}/cancel")
     @Operation(
             summary = "Cancel a booking",
-            description = "Cancels a booking owned by the authenticated member. Refund behavior will be implemented in a later phase."
+            description = "Cancels a booking owned by the authenticated member. Refund behavior will be implemented in a later phase.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = false,
+                    description = "Optional cancellation reason. It is stored in the booking note.",
+                    content = @Content(schema = @Schema(implementation = BookingCancelRequest.class))
+            )
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -99,8 +105,10 @@ public class BookingController {
     })
     public ApiResponse<BookingResponse> cancel(
             @AuthenticationPrincipal CurrentUser currentUser,
-            @PathVariable Long id
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) BookingCancelRequest request
     ) {
-        return ApiResponse.ok(bookingService.cancel(currentUser.id(), id));
+        String reason = request == null ? null : request.reason();
+        return ApiResponse.ok(bookingService.cancel(currentUser.id(), id, reason));
     }
 }

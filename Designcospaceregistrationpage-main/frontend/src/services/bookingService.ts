@@ -29,9 +29,10 @@ export async function createBooking(payload: BookingPayload) {
   return mapBooking(booking);
 }
 
-export async function cancelBooking(id: string) {
+export async function cancelBooking(id: string, reason?: string) {
   const booking = await apiFetch<BackendBooking>(`/bookings/${id}/cancel`, {
     method: 'PATCH',
+    body: reason ? JSON.stringify({ reason }) : undefined,
   });
 
   return mapBooking(booking);

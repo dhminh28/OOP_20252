@@ -7,6 +7,7 @@ interface BookingHistoryProps {
   activePage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  onCancel?: (booking: BookingHistoryItem) => void;
 }
 
 const card: React.CSSProperties = {
@@ -31,7 +32,7 @@ const pageButtonStyle = (active: boolean, disabled = false): React.CSSProperties
   justifyContent: 'center',
 });
 
-export function BookingHistory({ bookings, activePage, totalPages, onPageChange }: BookingHistoryProps) {
+export function BookingHistory({ bookings, activePage, totalPages, onPageChange, onCancel }: BookingHistoryProps) {
   const safeTotalPages = Math.max(totalPages, 0);
 
   return (
@@ -47,7 +48,7 @@ export function BookingHistory({ bookings, activePage, totalPages, onPageChange 
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              {['Room', 'Address', 'Time', 'Duration', 'Amount', 'Status'].map((heading) => (
+              {['Room', 'Address', 'Time', 'Duration', 'Amount', 'Status', 'Action'].map((heading) => (
                 <th
                   key={heading}
                   style={{
@@ -67,7 +68,7 @@ export function BookingHistory({ bookings, activePage, totalPages, onPageChange 
           </thead>
           <tbody>
             {bookings.map((booking, index) => (
-              <tr key={`${booking.room}-${booking.time}`} style={{ borderBottom: index < bookings.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+              <tr key={booking.id} style={{ borderBottom: index < bookings.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
                 <td style={{ padding: '11px 10px', fontSize: '13px', fontWeight: '500', color: '#111111', whiteSpace: 'nowrap' }}>
                   {booking.room}
                 </td>
@@ -88,6 +89,26 @@ export function BookingHistory({ bookings, activePage, totalPages, onPageChange 
                 </td>
                 <td style={{ padding: '11px 10px', whiteSpace: 'nowrap' }}>
                   <BookingStatusBadge status={booking.status} />
+                </td>
+                <td style={{ padding: '11px 10px', whiteSpace: 'nowrap' }}>
+                  <button
+                    onClick={() => onCancel?.(booking)}
+                    disabled={!onCancel || booking.status === 'cancelled'}
+                    style={{
+                      height: '30px',
+                      padding: '0 11px',
+                      borderRadius: '6px',
+                      border: booking.status === 'cancelled' ? '1px solid #E5E7EB' : '1px solid #FCA5A5',
+                      backgroundColor: booking.status === 'cancelled' ? '#F9FAFB' : '#FFFFFF',
+                      color: booking.status === 'cancelled' ? '#9CA3AF' : '#B91C1C',
+                      cursor: !onCancel || booking.status === 'cancelled' ? 'not-allowed' : 'pointer',
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                    }}
+                  >
+                    {booking.status === 'cancelled' ? 'Da huy' : 'Huy lich'}
+                  </button>
                 </td>
               </tr>
             ))}

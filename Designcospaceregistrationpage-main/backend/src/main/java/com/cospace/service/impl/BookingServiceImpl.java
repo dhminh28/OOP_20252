@@ -20,7 +20,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -97,8 +96,30 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public BookingResponse cancel(Long memberId, Long bookingId) {
-        return new BookingResponse(bookingId, null, null, null, null, BigDecimal.ZERO, BookingStatus.CANCELLED, null);
+    @Transactional
+    public BookingResponse cancel(Long memberId, Long bookingId, String reason) {
+        Booking booking = bookingRepository.findByIdAndMemberId(bookingId, memberId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new BusinessException("Booking is already cancelled");
+        }
+
+        booking.setNote(appendCancelReason(booking.getNote(), reason));
+        booking.setStatus(BookingStatus.CANCELLED);
+        return toResponse(bookingRepository.save(booking));
+    }
+
+    private String appendCancelReason(String currentNote, String reason) {
+        if (reason == null || reason.isBlank()) {
+            return currentNote;
+        }
+
+        String cancelNote = "Cancel reason: " + reason.trim();
+        if (currentNote == null || currentNote.isBlank()) {
+            return cancelNote;
+        }
+        return currentNote + "\n" + cancelNote;
     }
 
     private void validateBookingTime(BookingRequest request) {

@@ -1,13 +1,16 @@
-import { ChevronDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronDown, LogOut, User } from 'lucide-react';
 import logo from '../../assets/logo.svg';
 import { vnd } from '../../utils/formatCurrency';
 
 interface NavbarProps {
-  activeNav: 'spaces' | 'booking';
+  activeNav: 'spaces' | 'bookings' | null;
   balance: number;
   onGoToSpaces: () => void;
+  onGoToBookings: () => void;
   onGoToProfile: () => void;
   onOpenWallet: () => void;
+  onLogout: () => void;
 }
 
 const card: React.CSSProperties = {
@@ -16,7 +19,50 @@ const card: React.CSSProperties = {
   borderRadius: '8px',
 };
 
-export function Navbar({ activeNav, balance, onGoToSpaces, onGoToProfile, onOpenWallet }: NavbarProps) {
+export function Navbar({
+  activeNav,
+  balance,
+  onGoToSpaces,
+  onGoToBookings,
+  onGoToProfile,
+  onOpenWallet,
+  onLogout,
+}: NavbarProps) {
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, []);
+
+  const openProfile = () => {
+    setProfileMenuOpen(false);
+    onGoToProfile();
+  };
+
+  const logout = () => {
+    setProfileMenuOpen(false);
+    onLogout();
+  };
+
   return (
     <nav
       style={{
@@ -57,8 +103,8 @@ export function Navbar({ activeNav, balance, onGoToSpaces, onGoToProfile, onOpen
 
         <div style={{ display: 'flex', gap: '4px' }}>
           {[
-            { key: 'spaces', label: 'Không gian', onClick: onGoToSpaces },
-            { key: 'booking', label: 'Đặt chỗ của tôi', onClick: onGoToProfile },
+            { key: 'spaces', label: 'Khong gian', onClick: onGoToSpaces },
+            { key: 'bookings', label: 'Dat cho cua toi', onClick: onGoToBookings },
           ].map((item) => (
             <button
               key={item.key}
@@ -120,39 +166,115 @@ export function Navbar({ activeNav, balance, onGoToSpaces, onGoToProfile, onOpen
               flexShrink: 0,
             }}
           />
-          ₫ {vnd(balance)}
+          VND {vnd(balance)}
         </button>
 
-        <button
-          onClick={onGoToProfile}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            cursor: 'pointer',
-            border: 'none',
-            background: 'none',
-            padding: 0,
-          }}
-        >
-          <span
+        <div ref={profileMenuRef} style={{ position: 'relative' }}>
+          <button
+            onClick={() => setProfileMenuOpen((open) => !open)}
+            title="Menu tai khoan"
+            aria-label="Menu tai khoan"
+            aria-expanded={profileMenuOpen}
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              backgroundColor: '#3B82F6',
-              color: '#FFFFFF',
-              fontSize: '14px',
-              fontWeight: '700',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: '4px',
+              cursor: 'pointer',
+              border: 'none',
+              background: 'none',
+              padding: 0,
             }}
           >
-            M
-          </span>
-          <ChevronDown size={14} style={{ color: '#6B7280' }} />
-        </button>
+            <span
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                backgroundColor: '#3B82F6',
+                color: '#FFFFFF',
+                fontSize: '14px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              M
+            </span>
+            <ChevronDown
+              size={14}
+              style={{
+                color: '#6B7280',
+                transform: profileMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.15s',
+              }}
+            />
+          </button>
+
+          {profileMenuOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: '44px',
+                width: '190px',
+                padding: '6px',
+                borderRadius: '8px',
+                border: '1px solid #E5E7EB',
+                backgroundColor: '#FFFFFF',
+                boxShadow: '0 16px 32px rgba(17, 24, 39, 0.12)',
+                zIndex: 80,
+              }}
+            >
+              <button
+                onClick={openProfile}
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '9px',
+                  padding: '0 10px',
+                  border: 'none',
+                  borderRadius: '6px',
+                  background: 'none',
+                  color: '#111111',
+                  cursor: 'pointer',
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  textAlign: 'left',
+                }}
+              >
+                <User size={15} />
+                Ho so ca nhan
+              </button>
+              <button
+                onClick={logout}
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '9px',
+                  padding: '0 10px',
+                  border: 'none',
+                  borderRadius: '6px',
+                  background: 'none',
+                  color: '#B91C1C',
+                  cursor: 'pointer',
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  textAlign: 'left',
+                }}
+              >
+                <LogOut size={15} />
+                Dang xuat
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );

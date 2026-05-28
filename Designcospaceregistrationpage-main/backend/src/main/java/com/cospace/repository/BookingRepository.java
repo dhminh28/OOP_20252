@@ -12,10 +12,18 @@ import org.springframework.data.jpa.repository.Query;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
+    @Override
+    @EntityGraph(attributePaths = {"workspace", "member"})
+    Page<Booking> findAll(Pageable pageable);
+
     @EntityGraph(attributePaths = "workspace")
     Page<Booking> findByMemberId(Long memberId, Pageable pageable);
+
+    @EntityGraph(attributePaths = "workspace")
+    Optional<Booking> findByIdAndMemberId(Long id, Long memberId);
 
     boolean existsByWorkspaceIdAndStatusInAndStartTimeLessThanAndEndTimeGreaterThan(
             Long workspaceId,

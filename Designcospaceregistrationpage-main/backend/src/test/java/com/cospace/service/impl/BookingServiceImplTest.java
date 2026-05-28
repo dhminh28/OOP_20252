@@ -9,6 +9,7 @@ import com.cospace.entity.Workspace;
 import com.cospace.enums.BookingStatus;
 import com.cospace.exception.BusinessException;
 import com.cospace.exception.ConflictException;
+import com.cospace.exception.ResourceNotFoundException;
 import com.cospace.repository.BookingRepository;
 import com.cospace.repository.MemberRepository;
 import com.cospace.repository.WorkspaceRepository;
@@ -148,6 +149,52 @@ class BookingServiceImplTest {
         verify(bookingRepository, never()).save(any());
     }
 
+    @Test
+    void cancel_whenBookingBelongsToMember_updatesStatus() {
+        Long memberId = 1L;
+        Long bookingId = 99L;
+        Booking booking = existingBooking(bookingId, BookingStatus.SUCCESS);
+
+        when(bookingRepository.findByIdAndMemberId(bookingId, memberId)).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        BookingResponse response = bookingService.cancel(memberId, bookingId, "Change of plan");
+
+        assertThat(response.id()).isEqualTo(bookingId);
+        assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
+        assertThat(response.note()).isEqualTo("Cancel reason: Change of plan");
+        verify(bookingRepository).save(booking);
+    }
+
+    @Test
+    void cancel_whenBookingAlreadyCancelled_throwsBusinessException() {
+        Long memberId = 1L;
+        Long bookingId = 99L;
+        Booking booking = existingBooking(bookingId, BookingStatus.CANCELLED);
+
+        when(bookingRepository.findByIdAndMemberId(bookingId, memberId)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> bookingService.cancel(memberId, bookingId, null))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Booking is already cancelled");
+
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    void cancel_whenBookingDoesNotBelongToMember_throwsNotFound() {
+        Long memberId = 1L;
+        Long bookingId = 99L;
+
+        when(bookingRepository.findByIdAndMemberId(bookingId, memberId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> bookingService.cancel(memberId, bookingId, null))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Booking not found");
+
+        verify(bookingRepository, never()).save(any());
+    }
+
     private MeetingRoom meetingRoom(Long id) {
         MeetingRoom room = new MeetingRoom();
         ReflectionTestUtils.setField(room, "id", id);
@@ -156,5 +203,16 @@ class BookingServiceImplTest {
         room.setCapacity(8);
         room.setPricePerHour(new BigDecimal("150000"));
         return room;
+    }
+
+    private Booking existingBooking(Long id, BookingStatus status) {
+        Booking booking = new Booking();
+        ReflectionTestUtils.setField(booking, "id", id);
+        ReflectionTestUtils.setField(booking, "totalAmount", new BigDecimal("150000"));
+        booking.setWorkspace(meetingRoom(10L));
+        booking.setStartTime(LocalDateTime.of(2026, 5, 14, 9, 0));
+        booking.setEndTime(LocalDateTime.of(2026, 5, 14, 10, 0));
+        booking.setStatus(status);
+        return booking;
     }
 }

@@ -9,19 +9,21 @@ import {
   Users,
 } from 'lucide-react';
 
+export type AdminNav = 'overview' | 'spaces' | 'bookings' | 'members' | 'reports' | 'settings';
+
 interface SidebarProps {
-  activeNav: string;
-  onNavChange: (nav: string) => void;
+  activeNav: AdminNav;
+  onNavChange: (nav: AdminNav) => void;
   onLogout?: () => void;
 }
 
-const NAV_ITEMS = [
-  { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
-  { id: 'spaces', label: 'Không gian', icon: MapPin },
-  { id: 'bookings', label: 'Đặt chỗ', icon: Calendar },
-  { id: 'members', label: 'Thành viên', icon: Users },
-  { id: 'reports', label: 'Báo cáo', icon: BarChart3 },
-  { id: 'settings', label: 'Cài đặt', icon: Settings },
+const NAV_ITEMS: Array<{ id: AdminNav; label: string; icon: typeof LayoutDashboard }> = [
+  { id: 'overview', label: 'Tong quan', icon: LayoutDashboard },
+  { id: 'spaces', label: 'Khong gian', icon: MapPin },
+  { id: 'bookings', label: 'Dat cho', icon: Calendar },
+  { id: 'members', label: 'Thanh vien', icon: Users },
+  { id: 'reports', label: 'Bao cao', icon: BarChart3 },
+  { id: 'settings', label: 'Cai dat', icon: Settings },
 ];
 
 export function Sidebar({ activeNav, onNavChange, onLogout }: SidebarProps) {
@@ -44,7 +46,7 @@ export function Sidebar({ activeNav, onNavChange, onLogout }: SidebarProps) {
           <Building2 size={20} style={{ color: '#FFFFFF' }} />
           <span style={{ fontSize: '18px', fontWeight: '700', color: '#FFFFFF' }}>CoSpace</span>
         </div>
-        <p style={{ fontSize: '12px', color: '#9CA3AF', marginLeft: '28px' }}>Quản trị viên</p>
+        <p style={{ fontSize: '12px', color: '#9CA3AF', marginLeft: '28px' }}>Quan tri vien</p>
       </div>
 
       <div style={{ height: '1px', backgroundColor: '#374151', margin: '16px 0' }} />
@@ -104,7 +106,14 @@ export function Sidebar({ activeNav, onNavChange, onLogout }: SidebarProps) {
           <p style={{ fontSize: '14px', fontWeight: '700', color: '#FFFFFF', lineHeight: 1.2 }}>Admin</p>
           <p style={{ fontSize: '12px', color: '#9CA3AF', lineHeight: 1.3 }}>admin@cospace.vn</p>
         </div>
-        <LogOut size={16} style={{ color: '#9CA3AF', cursor: 'pointer' }} onClick={onLogout} />
+        <button
+          onClick={onLogout}
+          title="Dang xuat"
+          aria-label="Dang xuat"
+          style={{ border: 'none', background: 'none', padding: 0, color: '#9CA3AF', cursor: 'pointer' }}
+        >
+          <LogOut size={16} />
+        </button>
       </div>
     </aside>
   );

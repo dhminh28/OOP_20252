@@ -1,6 +1,7 @@
 export type BookingStatus = 'confirmed' | 'pending' | 'cancelled';
 
 export interface BookingHistoryItem {
+  id: string;
   room: string;
   addr: string;
   time: string;
