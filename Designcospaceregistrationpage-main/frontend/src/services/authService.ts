@@ -7,6 +7,8 @@ interface BackendUser {
   email: string;
   phone?: string | null;
   role: 'MEMBER' | 'ADMIN';
+  avatar?: string | null;
+  blocked?: boolean;
 }
 
 interface BackendAuthResponse {
@@ -48,9 +50,10 @@ export async function register(payload: {
   };
 }
 
-export function logout() {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
+export async function logout(): Promise<void> {
+  await apiFetch<void>('/auth/logout', {
+    method: 'POST',
+  });
 }
 
 function mapUser(user: BackendUser): User {
@@ -60,5 +63,7 @@ function mapUser(user: BackendUser): User {
     email: user.email,
     phone: user.phone ?? undefined,
     role: user.role.toLowerCase() as User['role'],
+    avatar: user.avatar ?? undefined,
+    blocked: Boolean(user.blocked),
   };
 }

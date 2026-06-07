@@ -7,6 +7,8 @@ import com.cospace.dto.response.ApiResponse;
 import com.cospace.dto.response.AuthResponse;
 import com.cospace.dto.response.UserResponse;
 import com.cospace.security.CurrentUser;
+import com.cospace.security.JwtProvider;
+import com.cospace.security.TokenBlacklistService;
 import com.cospace.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -14,10 +16,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,10 +30,20 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Authentication", description = "Register, login, and authenticated user profile APIs.")
 public class AuthController {
 
-    private final AuthService authService;
+    private static final String BEARER_PREFIX = "Bearer ";
 
-    public AuthController(AuthService authService) {
+    private final AuthService authService;
+    private final JwtProvider jwtProvider;
+    private final TokenBlacklistService tokenBlacklistService;
+
+    public AuthController(
+            AuthService authService,
+            JwtProvider jwtProvider,
+            TokenBlacklistService tokenBlacklistService
+    ) {
         this.authService = authService;
+        this.jwtProvider = jwtProvider;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @PostMapping("/register")
@@ -74,6 +88,24 @@ public class AuthController {
     })
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ApiResponse.ok(authService.login(request));
+    }
+
+    @PostMapping("/logout")
+    @Operation(
+            summary = "Logout",
+            description = "Immediately revokes the current JWT until its original expiration time.",
+            security = @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "JWT revoked."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Missing or invalid JWT.")
+    })
+    public ApiResponse<Void> logout(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader
+    ) {
+        String token = authorizationHeader.substring(BEARER_PREFIX.length()).trim();
+        tokenBlacklistService.blacklistToken(token, jwtProvider.getExpiration(token));
+        return ApiResponse.ok(null);
     }
 
     @GetMapping("/me")

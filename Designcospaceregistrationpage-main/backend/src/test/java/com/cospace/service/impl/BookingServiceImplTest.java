@@ -14,6 +14,7 @@ import com.cospace.repository.BookingRepository;
 import com.cospace.repository.MemberRepository;
 import com.cospace.repository.WorkspaceRepository;
 import com.cospace.service.EmailService;
+import com.cospace.service.NotificationService;
 import com.cospace.service.WalletService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,11 +56,21 @@ class BookingServiceImplTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private NotificationService notificationService;
+
     private BookingServiceImpl bookingService;
 
     @BeforeEach
     void setUp() {
-        bookingService = new BookingServiceImpl(bookingRepository, memberRepository, workspaceRepository, walletService, emailService);
+        bookingService = new BookingServiceImpl(
+                bookingRepository,
+                memberRepository,
+                workspaceRepository,
+                walletService,
+                emailService,
+                notificationService
+        );
     }
 
     @Test
@@ -73,7 +84,7 @@ class BookingServiceImplTest {
         Workspace workspace = meetingRoom(workspaceId);
 
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
-        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace));
+        when(workspaceRepository.findByIdForUpdate(workspaceId)).thenReturn(Optional.of(workspace));
         when(bookingRepository.existsByWorkspaceIdAndStatusInAndStartTimeLessThanAndEndTimeGreaterThan(
                 eq(workspaceId),
                 anyCollection(),
@@ -96,8 +107,13 @@ class BookingServiceImplTest {
         assertThat(statusesCaptor.getValue())
                 .containsExactlyInAnyOrder(BookingStatus.PENDING, BookingStatus.SUCCESS, BookingStatus.CONFIRMED)
                 .doesNotContain(BookingStatus.CANCELLED);
+        verify(workspaceRepository).findByIdForUpdate(workspaceId);
         verify(walletService, never()).deductFunds(any(), any());
-        verify(emailService, never()).sendBookingConfirmation(any());
+        verify(emailService, never()).sendBookingConfirmation(
+                any(), any(), any(), any(), any(), any()
+        );
+        verify(notificationService, never())
+                .sendNotification(any(), any(), any());
         verify(bookingRepository, never()).save(any());
     }
 
@@ -109,10 +125,11 @@ class BookingServiceImplTest {
         LocalDateTime end = LocalDateTime.of(2026, 5, 14, 13, 0);
         BookingRequest request = new BookingRequest(workspaceId, start, end, "Workshop");
         Member member = new Member();
+        member.setEmail("member@cospace.vn");
         Workspace workspace = meetingRoom(workspaceId);
 
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
-        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace));
+        when(workspaceRepository.findByIdForUpdate(workspaceId)).thenReturn(Optional.of(workspace));
         when(bookingRepository.existsByWorkspaceIdAndStatusInAndStartTimeLessThanAndEndTimeGreaterThan(
                 eq(workspaceId),
                 anyCollection(),
@@ -130,9 +147,19 @@ class BookingServiceImplTest {
         assertThat(response.id()).isEqualTo(99L);
         assertThat(response.status()).isEqualTo(BookingStatus.SUCCESS);
         assertThat(response.totalAmount()).isEqualByComparingTo("540000");
+        verify(workspaceRepository).findByIdForUpdate(workspaceId);
         verify(walletService).deductFunds(eq(memberId), eq(new BigDecimal("540000.0")));
         verify(bookingRepository).save(any(Booking.class));
-        verify(emailService).sendBookingConfirmation(any(Booking.class));
+        verify(emailService).sendBookingConfirmation(
+                "member@cospace.vn",
+                99L,
+                "Meeting Room A",
+                start,
+                end,
+                new BigDecimal("540000.0")
+        );
+        verify(notificationService)
+                .sendNotification(eq(memberId), any(String.class), any(String.class));
     }
 
     @Test
@@ -145,17 +172,17 @@ class BookingServiceImplTest {
                 .hasMessage("Booking start time must be before end time");
 
         verify(memberRepository, never()).findById(any());
-        verify(workspaceRepository, never()).findById(any());
+        verify(workspaceRepository, never()).findByIdForUpdate(any());
         verify(bookingRepository, never()).save(any());
     }
 
     @Test
-    void cancel_whenBookingBelongsToMember_updatesStatus() {
+    void cancel_whenSuccessfulBookingBelongsToMember_refundsAndUpdatesStatus() {
         Long memberId = 1L;
         Long bookingId = 99L;
         Booking booking = existingBooking(bookingId, BookingStatus.SUCCESS);
 
-        when(bookingRepository.findByIdAndMemberId(bookingId, memberId)).thenReturn(Optional.of(booking));
+        when(bookingRepository.findByIdAndMemberIdForUpdate(bookingId, memberId)).thenReturn(Optional.of(booking));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         BookingResponse response = bookingService.cancel(memberId, bookingId, "Change of plan");
@@ -163,7 +190,46 @@ class BookingServiceImplTest {
         assertThat(response.id()).isEqualTo(bookingId);
         assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
         assertThat(response.note()).isEqualTo("Cancel reason: Change of plan");
+        verify(walletService).refundFunds(memberId, new BigDecimal("150000"));
         verify(bookingRepository).save(booking);
+        verify(notificationService)
+                .sendNotification(eq(memberId), any(String.class), any(String.class));
+    }
+
+    @Test
+    void cancel_whenConfirmedBookingBelongsToMember_refundsAndUpdatesStatus() {
+        Long memberId = 1L;
+        Long bookingId = 99L;
+        Booking booking = existingBooking(bookingId, BookingStatus.CONFIRMED);
+
+        when(bookingRepository.findByIdAndMemberIdForUpdate(bookingId, memberId)).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        BookingResponse response = bookingService.cancel(memberId, bookingId, null);
+
+        assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
+        verify(walletService).refundFunds(memberId, new BigDecimal("150000"));
+        verify(bookingRepository).save(booking);
+        verify(notificationService)
+                .sendNotification(eq(memberId), any(String.class), any(String.class));
+    }
+
+    @Test
+    void cancel_whenPendingBookingBelongsToMember_doesNotRefundAndUpdatesStatus() {
+        Long memberId = 1L;
+        Long bookingId = 99L;
+        Booking booking = existingBooking(bookingId, BookingStatus.PENDING);
+
+        when(bookingRepository.findByIdAndMemberIdForUpdate(bookingId, memberId)).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        BookingResponse response = bookingService.cancel(memberId, bookingId, null);
+
+        assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
+        verify(walletService, never()).refundFunds(any(), any());
+        verify(bookingRepository).save(booking);
+        verify(notificationService)
+                .sendNotification(eq(memberId), any(String.class), any(String.class));
     }
 
     @Test
@@ -172,13 +238,16 @@ class BookingServiceImplTest {
         Long bookingId = 99L;
         Booking booking = existingBooking(bookingId, BookingStatus.CANCELLED);
 
-        when(bookingRepository.findByIdAndMemberId(bookingId, memberId)).thenReturn(Optional.of(booking));
+        when(bookingRepository.findByIdAndMemberIdForUpdate(bookingId, memberId)).thenReturn(Optional.of(booking));
 
         assertThatThrownBy(() -> bookingService.cancel(memberId, bookingId, null))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Booking is already cancelled");
 
+        verify(walletService, never()).refundFunds(any(), any());
         verify(bookingRepository, never()).save(any());
+        verify(notificationService, never())
+                .sendNotification(any(), any(), any());
     }
 
     @Test
@@ -186,13 +255,39 @@ class BookingServiceImplTest {
         Long memberId = 1L;
         Long bookingId = 99L;
 
-        when(bookingRepository.findByIdAndMemberId(bookingId, memberId)).thenReturn(Optional.empty());
+        when(bookingRepository.findByIdAndMemberIdForUpdate(bookingId, memberId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> bookingService.cancel(memberId, bookingId, null))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Booking not found");
 
+        verify(walletService, never()).refundFunds(any(), any());
         verify(bookingRepository, never()).save(any());
+        verify(notificationService, never())
+                .sendNotification(any(), any(), any());
+    }
+
+    @Test
+    void cancelByAdmin_whenSuccessfulBooking_refundsMemberAndSendsNotification() {
+        Long bookingId = 99L;
+        Booking booking = existingBooking(bookingId, BookingStatus.SUCCESS);
+
+        when(bookingRepository.findByIdForUpdate(bookingId))
+                .thenReturn(Optional.of(booking));
+        when(bookingRepository.save(booking)).thenReturn(booking);
+
+        BookingResponse response = bookingService.cancelByAdmin(
+                bookingId,
+                "Workspace maintenance"
+        );
+
+        assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
+        assertThat(response.note())
+                .isEqualTo("Admin cancel reason: Workspace maintenance");
+        verify(walletService).refundFunds(1L, new BigDecimal("150000"));
+        verify(notificationService)
+                .sendNotification(eq(1L), any(String.class), any(String.class));
+        verify(bookingRepository).save(booking);
     }
 
     private MeetingRoom meetingRoom(Long id) {
@@ -209,6 +304,9 @@ class BookingServiceImplTest {
         Booking booking = new Booking();
         ReflectionTestUtils.setField(booking, "id", id);
         ReflectionTestUtils.setField(booking, "totalAmount", new BigDecimal("150000"));
+        Member member = new Member();
+        ReflectionTestUtils.setField(member, "id", 1L);
+        booking.setMember(member);
         booking.setWorkspace(meetingRoom(10L));
         booking.setStartTime(LocalDateTime.of(2026, 5, 14, 9, 0));
         booking.setEndTime(LocalDateTime.of(2026, 5, 14, 10, 0));

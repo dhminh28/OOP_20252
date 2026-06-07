@@ -1,4 +1,5 @@
 import type { WorkspaceType } from '../../types/workspace';
+import { workspaceTypeLabel } from '../../utils/displayText';
 
 export type WorkspaceFilterType = 'All' | WorkspaceType;
 
@@ -38,7 +39,7 @@ export function WorkspaceFilter({ filters, activeFilter, onChange }: WorkspaceFi
               if (!isActive) event.currentTarget.style.backgroundColor = '#FFFFFF';
             }}
           >
-            {filter}
+            {filter === 'All' ? 'Tất cả' : workspaceTypeLabel(filter)}
           </button>
         );
       })}

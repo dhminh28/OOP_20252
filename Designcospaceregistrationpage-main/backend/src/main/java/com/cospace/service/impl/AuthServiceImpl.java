@@ -8,6 +8,7 @@ import com.cospace.entity.Member;
 import com.cospace.entity.User;
 import com.cospace.entity.Wallet;
 import com.cospace.exception.BusinessException;
+import com.cospace.exception.AccountBlockedException;
 import com.cospace.exception.ResourceNotFoundException;
 import com.cospace.repository.UserRepository;
 import com.cospace.repository.WalletRepository;
@@ -68,6 +69,9 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new BusinessException("Invalid email or password");
         }
+        if (user.isBlocked()) {
+            throw new AccountBlockedException("Tài khoản của bạn đã bị khóa");
+        }
 
         return new AuthResponse(toUserResponse(user), jwtProvider.generateToken(user));
     }
@@ -81,7 +85,15 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private UserResponse toUserResponse(User user) {
-        return new UserResponse(user.getId(), user.getFullName(), user.getEmail(), user.getPhone(), user.getRole());
+        return new UserResponse(
+                user.getId(),
+                user.getFullName(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getRole(),
+                user.isBlocked(),
+                user.getAvatar()
+        );
     }
 
     private String normalizeEmail(String email) {

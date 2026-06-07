@@ -1,6 +1,7 @@
 package com.cospace.repository.specification;
 
 import com.cospace.entity.Workspace;
+import com.cospace.enums.WorkspaceStatus;
 import com.cospace.enums.WorkspaceType;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -29,6 +30,11 @@ public final class WorkspaceSpecifications {
                 : criteriaBuilder.lessThanOrEqualTo(root.get("pricePerHour"), maxPrice);
     }
 
+    public static Specification<Workspace> isNotArchived() {
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.notEqual(root.get("status"), WorkspaceStatus.ARCHIVED);
+    }
+
     public static Specification<Workspace> withFilters(
             WorkspaceType type,
             Integer minCapacity,
@@ -36,6 +42,7 @@ public final class WorkspaceSpecifications {
     ) {
         return hasType(type)
                 .and(hasMinimumCapacity(minCapacity))
-                .and(hasMaximumPrice(maxPrice));
+                .and(hasMaximumPrice(maxPrice))
+                .and(isNotArchived());
     }
 }

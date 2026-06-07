@@ -6,6 +6,20 @@ interface BackendWallet {
   balance: number;
 }
 
+export type RechargeRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface RechargeRequest {
+  id: number;
+  memberId: number;
+  memberName: string;
+  memberEmail: string;
+  amount: number;
+  status: RechargeRequestStatus;
+  createdAt: string;
+  updatedAt?: string | null;
+  note?: string | null;
+}
+
 export async function getBalance(): Promise<Wallet> {
   const wallet = await apiFetch<BackendWallet>('/wallet');
   return {
@@ -14,14 +28,9 @@ export async function getBalance(): Promise<Wallet> {
   };
 }
 
-export async function recharge(amount: number): Promise<Wallet> {
-  const wallet = await apiFetch<BackendWallet>('/wallet/recharge', {
+export async function recharge(amount: number): Promise<RechargeRequest> {
+  return apiFetch<RechargeRequest>('/wallet/recharge', {
     method: 'POST',
     body: JSON.stringify({ amount }),
   });
-
-  return {
-    walletId: String(wallet.walletId),
-    balance: Number(wallet.balance),
-  };
 }

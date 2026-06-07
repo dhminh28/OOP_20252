@@ -1,0 +1,5 @@
+ALTER TABLE users
+    ADD COLUMN is_blocked BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE users
+    ADD COLUMN avatar TEXT;

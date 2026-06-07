@@ -1,16 +1,7 @@
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarDays, ChevronDown } from 'lucide-react';
 
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
-const MAY_GRID: (number | null)[][] = [
-  [null, null, null, null, 1, 2, 3],
-  [4, 5, 6, 7, 8, 9, 10],
-  [11, 12, 13, 14, 15, 16, 17],
-  [18, 19, 20, 21, 22, 23, 24],
-  [25, 26, 27, 28, 29, 30, 31],
-];
-
-const TODAY = 6;
 const TIME_SLOTS = ['07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00'];
 
 interface MiniCalendarProps {
@@ -21,6 +12,12 @@ interface MiniCalendarProps {
 }
 
 function MiniCalendar({ selectedDate, onSelectDate, selectedTime, onSelectTime }: MiniCalendarProps) {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonthIndex = now.getMonth();
+  const today = now.getDate();
+  const calendarGrid = buildCalendarGrid(currentYear, currentMonthIndex);
+
   return (
     <div
       style={{
@@ -36,16 +33,10 @@ function MiniCalendar({ selectedDate, onSelectDate, selectedTime, onSelectTime }
         width: '300px',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-        <button style={{ width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #E5E7EB', borderRadius: '6px', background: 'none', cursor: 'pointer' }}>
-          <ChevronLeft size={14} style={{ color: '#6B7280' }} />
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
         <span style={{ fontSize: '14px', fontWeight: '700', color: '#111111', fontFamily: 'DM Sans, sans-serif' }}>
-          Tháng 5, 2026
+          Tháng {currentMonthIndex + 1}, {currentYear}
         </span>
-        <button style={{ width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #E5E7EB', borderRadius: '6px', background: 'none', cursor: 'pointer' }}>
-          <ChevronRight size={14} style={{ color: '#6B7280' }} />
-        </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '4px' }}>
@@ -57,11 +48,11 @@ function MiniCalendar({ selectedDate, onSelectDate, selectedTime, onSelectTime }
       </div>
 
       <div>
-        {MAY_GRID.map((row, rowIndex) => (
+        {calendarGrid.map((row, rowIndex) => (
           <div key={rowIndex} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '2px' }}>
             {row.map((day, colIndex) => {
-              const isPast = day !== null && day < TODAY;
-              const isToday = day === TODAY;
+              const isPast = day !== null && day < today;
+              const isToday = day === today;
               const isSelected = day === selectedDate;
 
               let backgroundColor = 'transparent';
@@ -166,6 +157,24 @@ function MiniCalendar({ selectedDate, onSelectDate, selectedTime, onSelectTime }
         </div>
       </div>
     </div>
+  );
+}
+
+function buildCalendarGrid(year: number, monthIndex: number): (number | null)[][] {
+  const firstDayOffset = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const cells: (number | null)[] = [
+    ...Array.from({ length: firstDayOffset }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
+  ];
+
+  while (cells.length % 7 !== 0) {
+    cells.push(null);
+  }
+
+  return Array.from(
+    { length: cells.length / 7 },
+    (_, rowIndex) => cells.slice(rowIndex * 7, rowIndex * 7 + 7),
   );
 }
 

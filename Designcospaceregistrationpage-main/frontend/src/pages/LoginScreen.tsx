@@ -1,208 +1,142 @@
-import { useState } from 'react';
-import { Building2, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { FormEvent, useState } from 'react';
+import { ArrowLeft, Building2, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { login } from '../services/authService';
 import { useAuth } from '../hooks/useAuth';
-
-const card: React.CSSProperties = {
-  backgroundColor: '#FFFFFF',
-  border: '1px solid #E5E7EB',
-  borderRadius: '8px',
-};
-
-const inputBase: React.CSSProperties = {
-  height: '42px',
-  borderRadius: '6px',
-  border: '1px solid #D1D5DB',
-  padding: '0 12px',
-  fontSize: '14px',
-  color: '#111111',
-  fontFamily: 'DM Sans, sans-serif',
-  outline: 'none',
-  width: '100%',
-  boxSizing: 'border-box',
-};
+import '../styles/auth.css';
 
 interface LoginScreenProps {
   onLogin: () => void;
   onAdminLogin: () => void;
   onSwitchToRegister: () => void;
+  onGoHome: () => void;
 }
 
-export function LoginScreen({ onLogin, onAdminLogin, onSwitchToRegister }: LoginScreenProps) {
+export function LoginScreen({ onLogin, onAdminLogin, onSwitchToRegister, onGoHome }: LoginScreenProps) {
   const { setSession } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('member@cospace.vn');
-  const [password, setPassword] = useState('123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const submitLogin = async (nextEmail = email, nextPassword = password) => {
+  const submitLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setLoading(true);
     setError(null);
+
     try {
-      const result = await login(nextEmail, nextPassword);
+      const result = await login(email.trim(), password);
       setSession(result.user, result.token);
+
       if (result.user.role === 'admin') {
         onAdminLogin();
       } else {
         onLogin();
       }
-    } catch (loginError) {
-      setError(loginError instanceof Error ? loginError.message : 'Dang nhap that bai');
+    } catch {
+      setError('Địa chỉ thư điện tử hoặc mật khẩu không chính xác. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#F9FAFB',
-      fontFamily: 'DM Sans, sans-serif',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '40px 20px',
-    }}>
-      <div style={{ width: '100%', maxWidth: '420px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <Building2 size={28} strokeWidth={2} style={{ color: '#111111' }} />
-            <span style={{ fontSize: '24px', fontWeight: '700', color: '#111111', letterSpacing: '-0.5px' }}>
-              CoSpace
-            </span>
-          </div>
-          <p style={{ fontSize: '15px', color: '#6B7280' }}>Dang nhap bang backend Spring Boot</p>
+    <main className="auth-page">
+      <section className="auth-visual" aria-label="Không gian làm việc CoSpace">
+        <img
+          src="https://images.unsplash.com/photo-1687945727613-a4d06cc41024?auto=format&fit=crop&w=1400&q=88"
+          alt="Không gian làm việc hiện đại với ánh sáng tự nhiên"
+        />
+        <div className="auth-visual-shade" />
+        <div className="auth-visual-brand">
+          <span className="auth-logo-mark">
+            <Building2 size={22} strokeWidth={2.2} />
+          </span>
+          <span>CoSpace</span>
         </div>
+        <div className="auth-visual-copy">
+          <p>Không gian linh hoạt</p>
+          <h2>Làm việc hiệu quả trong một không gian phù hợp với bạn.</h2>
+        </div>
+      </section>
 
-        <div style={{ ...card, padding: '32px' }}>
-          <h1 style={{ fontSize: '20px', fontWeight: '700', color: '#111111', marginBottom: '24px' }}>
-            Dang nhap
-          </h1>
+      <section className="auth-panel">
+        <div className="auth-form-shell">
+          <button type="button" className="auth-back" onClick={onGoHome}>
+            <ArrowLeft size={17} />
+            Về trang chủ
+          </button>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                Email
-              </label>
+          <div className="auth-mobile-brand">
+            <span className="auth-logo-mark">
+              <Building2 size={20} strokeWidth={2.2} />
+            </span>
+            <span>CoSpace</span>
+          </div>
+
+          <div className="auth-heading">
+            <p className="auth-eyebrow">Chào mừng trở lại</p>
+            <h1>Đăng nhập</h1>
+            <p>Đăng nhập để quản lý lịch đặt chỗ và ví CoSpace của bạn.</p>
+          </div>
+
+          <form className="auth-form" onSubmit={submitLogin}>
+            <div className="auth-field">
+              <label htmlFor="login-email">Địa chỉ thư điện tử</label>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="email@example.com"
-                style={inputBase}
+                placeholder="Nhập địa chỉ thư điện tử"
+                autoComplete="email"
+                required
               />
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                Mat khau
-              </label>
-              <div style={{ position: 'relative' }}>
+            <div className="auth-field">
+              <label htmlFor="login-password">Mật khẩu</label>
+              <div className="auth-password">
                 <input
+                  id="login-password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Nhap mat khau"
-                  style={{ ...inputBase, paddingRight: '40px' }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') void submitLogin();
-                  }}
+                  placeholder="Nhập mật khẩu"
+                  autoComplete="current-password"
+                  required
                 />
                 <button
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    border: 'none',
-                    background: 'none',
-                    cursor: 'pointer',
-                    color: '#9CA3AF',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
             {error && (
-              <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', borderRadius: '8px', padding: '10px 12px', fontSize: '13px' }}>
+              <div className="auth-error" role="alert">
                 {error}
               </div>
             )}
 
-            <button
-              onClick={() => void submitLogin()}
-              disabled={loading}
-              style={{
-                height: '44px',
-                borderRadius: '8px',
-                backgroundColor: loading ? '#9CA3AF' : '#111111',
-                color: '#FFFFFF',
-                fontSize: '14px',
-                fontWeight: '600',
-                border: 'none',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontFamily: 'DM Sans, sans-serif',
-                marginTop: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
-            >
-              {loading && <Loader2 size={16} />}
-              {loading ? 'Dang dang nhap...' : 'Dang nhap'}
+            <button type="submit" className="auth-submit" disabled={loading}>
+              {loading && <Loader2 className="auth-spinner" size={18} />}
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
+          </form>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '8px 0' }}>
-              <div style={{ flex: 1, height: '1px', backgroundColor: '#E5E7EB' }} />
-              <span style={{ fontSize: '12px', color: '#9CA3AF' }}>HOAC</span>
-              <div style={{ flex: 1, height: '1px', backgroundColor: '#E5E7EB' }} />
-            </div>
-
-            <button
-              onClick={() => void submitLogin('admin@cospace.vn', '123456')}
-              disabled={loading}
-              style={{
-                height: '42px',
-                borderRadius: '8px',
-                backgroundColor: '#FFFFFF',
-                color: '#374151',
-                fontSize: '13px',
-                fontWeight: '600',
-                border: '1px solid #D1D5DB',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontFamily: 'DM Sans, sans-serif',
-              }}
-            >
-              Dang nhap Admin demo
+          <p className="auth-switch">
+            Chưa có tài khoản?{' '}
+            <button type="button" onClick={onSwitchToRegister}>
+              Đăng ký ngay
             </button>
-          </div>
+          </p>
         </div>
-
-        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px', color: '#6B7280' }}>
-          Chua co tai khoan?{' '}
-          <button
-            onClick={onSwitchToRegister}
-            style={{
-              color: '#3B82F6',
-              fontWeight: '600',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '14px',
-            }}
-          >
-            Dang ky ngay
-          </button>
-        </p>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

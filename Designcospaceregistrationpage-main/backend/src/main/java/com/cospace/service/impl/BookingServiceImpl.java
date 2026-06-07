@@ -14,6 +14,7 @@ import com.cospace.repository.MemberRepository;
 import com.cospace.repository.WorkspaceRepository;
 import com.cospace.service.BookingService;
 import com.cospace.service.EmailService;
+import com.cospace.service.NotificationService;
 import com.cospace.service.WalletService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,19 +37,22 @@ public class BookingServiceImpl implements BookingService {
     private final WorkspaceRepository workspaceRepository;
     private final WalletService walletService;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     public BookingServiceImpl(
             BookingRepository bookingRepository,
             MemberRepository memberRepository,
             WorkspaceRepository workspaceRepository,
             WalletService walletService,
-            EmailService emailService
+            EmailService emailService,
+            NotificationService notificationService
     ) {
         this.bookingRepository = bookingRepository;
         this.memberRepository = memberRepository;
         this.workspaceRepository = workspaceRepository;
         this.walletService = walletService;
         this.emailService = emailService;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -58,7 +62,7 @@ public class BookingServiceImpl implements BookingService {
 
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
-        Workspace workspace = workspaceRepository.findById(request.workspaceId())
+        Workspace workspace = workspaceRepository.findByIdForUpdate(request.workspaceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
 
         boolean hasConflict = bookingRepository.existsByWorkspaceIdAndStatusInAndStartTimeLessThanAndEndTimeGreaterThan(
@@ -83,7 +87,21 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(BookingStatus.SUCCESS);
         Booking savedBooking = bookingRepository.save(booking);
-        emailService.sendBookingConfirmation(savedBooking);
+        emailService.sendBookingConfirmation(
+                member.getEmail(),
+                savedBooking.getId(),
+                workspace.getName(),
+                savedBooking.getStartTime(),
+                savedBooking.getEndTime(),
+                savedBooking.getTotalAmount()
+        );
+        notificationService.sendNotification(
+                memberId,
+                "Đặt chỗ thành công",
+                "Bạn đã đặt " + workspace.getName() + " thành công từ "
+                        + savedBooking.getStartTime() + " đến "
+                        + savedBooking.getEndTime() + "."
+        );
 
         return toResponse(savedBooking);
     }
@@ -98,16 +116,67 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponse cancel(Long memberId, Long bookingId, String reason) {
-        Booking booking = bookingRepository.findByIdAndMemberId(bookingId, memberId)
+        Booking booking = bookingRepository.findByIdAndMemberIdForUpdate(bookingId, memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new BusinessException("Booking is already cancelled");
         }
 
+        boolean refunded = booking.getStatus() == BookingStatus.SUCCESS
+                || booking.getStatus() == BookingStatus.CONFIRMED;
+        if (refunded) {
+            walletService.refundFunds(memberId, booking.getTotalAmount());
+        }
+
         booking.setNote(appendCancelReason(booking.getNote(), reason));
         booking.setStatus(BookingStatus.CANCELLED);
-        return toResponse(bookingRepository.save(booking));
+        Booking savedBooking = bookingRepository.save(booking);
+        notificationService.sendNotification(
+                memberId,
+                "Đã hủy lịch đặt chỗ",
+                refunded
+                        ? "Bạn đã hủy đặt phòng " + booking.getWorkspace().getName()
+                        + " thành công. Số tiền "
+                        + formatAmount(booking.getTotalAmount())
+                        + " VND đã được hoàn lại vào ví."
+                        : "Bạn đã hủy đặt phòng "
+                        + booking.getWorkspace().getName() + " thành công."
+        );
+        return toResponse(savedBooking);
+    }
+
+    @Override
+    @Transactional
+    public BookingResponse cancelByAdmin(Long bookingId, String reason) {
+        Booking booking = bookingRepository.findByIdForUpdate(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new BusinessException("Booking is already cancelled");
+        }
+
+        boolean refunded = booking.getStatus() == BookingStatus.SUCCESS
+                || booking.getStatus() == BookingStatus.CONFIRMED;
+        Long memberId = booking.getMember().getId();
+        if (refunded) {
+            walletService.refundFunds(memberId, booking.getTotalAmount());
+        }
+
+        booking.setNote(appendAdminCancelReason(booking.getNote(), reason));
+        booking.setStatus(BookingStatus.CANCELLED);
+        Booking savedBooking = bookingRepository.save(booking);
+        notificationService.sendNotification(
+                memberId,
+                "Lịch đặt chỗ đã bị Admin hủy",
+                "Lịch đặt phòng " + booking.getWorkspace().getName()
+                        + " của bạn đã bị Admin hủy. Lý do: " + reason.trim()
+                        + (refunded
+                        ? ". Số tiền " + formatAmount(booking.getTotalAmount())
+                        + " VND đã được hoàn trả."
+                        : ".")
+        );
+        return toResponse(savedBooking);
     }
 
     private String appendCancelReason(String currentNote, String reason) {
@@ -120,6 +189,18 @@ public class BookingServiceImpl implements BookingService {
             return cancelNote;
         }
         return currentNote + "\n" + cancelNote;
+    }
+
+    private String appendAdminCancelReason(String currentNote, String reason) {
+        String cancelNote = "Admin cancel reason: " + reason.trim();
+        if (currentNote == null || currentNote.isBlank()) {
+            return cancelNote;
+        }
+        return currentNote + "\n" + cancelNote;
+    }
+
+    private String formatAmount(java.math.BigDecimal amount) {
+        return amount.stripTrailingZeros().toPlainString();
     }
 
     private void validateBookingTime(BookingRequest request) {

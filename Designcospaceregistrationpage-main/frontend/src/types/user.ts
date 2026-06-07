@@ -4,6 +4,8 @@ export interface User {
   email: string;
   phone?: string;
   role: 'member' | 'admin';
+  avatar?: string;
+  blocked?: boolean;
 }
 
 export interface Member extends User {

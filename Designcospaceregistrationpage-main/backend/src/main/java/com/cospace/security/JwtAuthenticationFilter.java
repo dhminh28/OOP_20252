@@ -1,5 +1,6 @@
 package com.cospace.security;
 
+import com.cospace.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,9 +21,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtProvider jwtProvider;
+    private final TokenBlacklistService tokenBlacklistService;
+    private final UserRepository userRepository;
 
-    public JwtAuthenticationFilter(JwtProvider jwtProvider) {
+    public JwtAuthenticationFilter(
+            JwtProvider jwtProvider,
+            TokenBlacklistService tokenBlacklistService,
+            UserRepository userRepository
+    ) {
         this.jwtProvider = jwtProvider;
+        this.tokenBlacklistService = tokenBlacklistService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -33,8 +42,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
         String token = resolveToken(request);
 
-        if (token != null && jwtProvider.validateToken(token) && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (token != null
+                && !tokenBlacklistService.isBlacklisted(token)
+                && jwtProvider.validateToken(token)
+                && SecurityContextHolder.getContext().getAuthentication() == null) {
             CurrentUser currentUser = jwtProvider.getCurrentUser(token);
+            boolean blocked = userRepository.findById(currentUser.id())
+                    .map(user -> user.isBlocked())
+                    .orElse(true);
+            if (blocked) {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("application/json");
+                response.getWriter().write(
+                        "{\"success\":false,\"message\":\"Tài khoản của bạn đã bị khóa\",\"data\":null}"
+                );
+                return;
+            }
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     currentUser,
                     null,

@@ -1,6 +1,8 @@
 services:
   db:
     image: postgres:16-alpine
+    profiles:
+      - internal-db
     environment:
       POSTGRES_DB: cospace_db
       POSTGRES_USER: postgres
@@ -19,15 +21,14 @@ services:
     build:
       context: ./backend
     environment:
-      DB_URL: jdbc:postgresql://db:5432/cospace_db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-      JWT_SECRET: change-this-compose-secret-with-at-least-32-chars
-      CORS_ALLOWED_ORIGIN: http://localhost:5173
-      MAIL_FROM: no-reply@cospace.local
-    depends_on:
-      db:
-        condition: service_healthy
+      DB_URL: jdbc:postgresql://${DB_HOST:-host.docker.internal}:${DB_PORT:-5432}/${DB_NAME:-ITSS_Nhat}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      FLYWAY_ENABLED: ${FLYWAY_ENABLED:-true}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
+      JWT_SECRET: ${JWT_SECRET:-change-this-compose-secret-with-at-least-32-chars}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@cospace.local}
     ports:
       - "8080:8080"
 

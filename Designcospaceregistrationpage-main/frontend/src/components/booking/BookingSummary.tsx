@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, CreditCard, Loader2, MapPin, Users } from 'lucide-react';
 import { WorkspaceTypeBadge } from '../common/Badge';
 import { vnd } from '../../utils/formatCurrency';
+import { workspaceLocationLabel, workspaceNameLabel } from '../../utils/displayText';
 import type { Workspace } from '../../types/workspace';
 
 interface BookingSummaryProps {
@@ -39,27 +40,27 @@ export function BookingSummary({
     <div style={{ position: 'sticky', top: '80px' }}>
       <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '20px' }}>
         <p style={{ fontSize: '15px', fontWeight: '700', color: '#111111', fontFamily: 'DM Sans, sans-serif', marginBottom: '14px' }}>
-          Tom tat dat cho
+          Tóm tắt đặt chỗ
         </p>
         <div style={{ height: '1px', backgroundColor: '#E5E7EB', marginBottom: '14px' }} />
 
         <div style={{ marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
             <span style={{ fontSize: '15px', fontWeight: '700', color: '#111111', fontFamily: 'DM Sans, sans-serif' }}>
-              {workspace.name}
+              {workspaceNameLabel(workspace.name)}
             </span>
             <WorkspaceTypeBadge type={workspace.type} />
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', marginBottom: '4px' }}>
             <MapPin size={12} style={{ color: '#9CA3AF', marginTop: '2px', flexShrink: 0 }} />
             <span style={{ fontSize: '12px', color: '#6B7280', fontFamily: 'DM Sans, sans-serif' }}>
-              {workspace.floor}
+              {workspaceLocationLabel(workspace.floor)}
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Users size={12} style={{ color: '#9CA3AF' }} />
             <span style={{ fontSize: '12px', color: '#6B7280', fontFamily: 'DM Sans, sans-serif' }}>
-              Suc chua: {workspace.capacity} nguoi
+              Sức chứa: {workspace.capacity} người
             </span>
           </div>
         </div>
@@ -68,10 +69,10 @@ export function BookingSummary({
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {[
-            { label: 'Thoi luong', value: `${durationHours} gio`, gray: false },
-            { label: 'Don gia', value: `VND ${vnd(pricePerHour)}/gio`, gray: false },
-            { label: 'Tam tinh', value: `VND ${vnd(subtotal)}`, gray: false },
-            { label: 'Giam gia', value: `- VND ${vnd(discount)}`, gray: true },
+            { label: 'Thời lượng', value: `${durationHours} giờ`, gray: false },
+            { label: 'Đơn giá', value: `${vnd(pricePerHour)} ₫/giờ`, gray: false },
+            { label: 'Tạm tính', value: `${vnd(subtotal)} ₫`, gray: false },
+            { label: 'Giảm giá', value: `- ${vnd(discount)} ₫`, gray: true },
           ].map((row) => (
             <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0' }}>
               <span style={{ fontSize: '13px', color: row.gray ? '#9CA3AF' : '#6B7280', fontFamily: 'DM Sans, sans-serif' }}>
@@ -87,10 +88,10 @@ export function BookingSummary({
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0' }}>
             <span style={{ fontSize: '14px', fontWeight: '700', color: '#111111', fontFamily: 'DM Sans, sans-serif' }}>
-              TONG CONG
+              TỔNG CỘNG
             </span>
             <span style={{ fontSize: '20px', fontWeight: '700', color: '#111111', fontFamily: 'DM Sans, sans-serif', letterSpacing: '-0.5px' }}>
-              VND {vnd(total)}
+              {vnd(total)} ₫
             </span>
           </div>
         </div>
@@ -109,7 +110,7 @@ export function BookingSummary({
           <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
             <CreditCard size={14} style={{ color: '#10B981' }} />
             <span style={{ fontSize: '13px', fontWeight: '600', color: '#10B981', fontFamily: 'DM Sans, sans-serif' }}>
-              {walletLoading ? 'Dang tai so du...' : `So du vi: VND ${vnd(walletBalance)}`}
+              {walletLoading ? 'Đang tải số dư...' : `Số dư ví: ${vnd(walletBalance)} ₫`}
             </span>
           </div>
           <CheckCircle2 size={16} style={{ color: '#10B981' }} />
@@ -129,7 +130,7 @@ export function BookingSummary({
           >
             <AlertTriangle size={13} style={{ color: '#D97706', flexShrink: 0 }} />
             <span style={{ fontSize: '12px', color: '#92400E', fontFamily: 'DM Sans, sans-serif' }}>
-              So du khong du. Can nap them VND {vnd(shortfall)}
+              Số dư không đủ. Cần nạp thêm {vnd(shortfall)} ₫.
             </span>
           </div>
         )}
@@ -163,7 +164,7 @@ export function BookingSummary({
           }}
         >
           {submitting && <Loader2 size={16} />}
-          {submitting ? 'Dang dat cho...' : 'Xac nhan dat cho'}
+          {submitting ? 'Đang đặt chỗ...' : 'Xác nhận đặt chỗ'}
         </button>
 
         <div style={{ textAlign: 'center', marginTop: '10px' }}>
@@ -171,7 +172,7 @@ export function BookingSummary({
             onClick={onCancel}
             style={{ background: 'none', border: 'none', padding: 0, fontSize: '13px', color: '#6B7280', fontFamily: 'DM Sans, sans-serif', cursor: 'pointer' }}
           >
-            Huy bo
+            Hủy bỏ
           </button>
         </div>
       </div>

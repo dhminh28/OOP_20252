@@ -6,13 +6,14 @@ import { DateTimePicker } from '../components/booking/DateTimePicker';
 import { WorkspaceTypeBadge } from '../components/common/Badge';
 import { createBooking } from '../services/bookingService';
 import { calculatePrice } from '../utils/calculatePrice';
+import { equipmentLabel, workspaceLocationLabel, workspaceNameLabel } from '../utils/displayText';
 import type { Workspace } from '../types/workspace';
 
 const EQUIPMENT_ICONS: Record<string, React.ReactNode> = {
   WiFi: <Wifi size={10} />,
-  'MÃ¡y chiáº¿u': <Monitor size={10} />,
-  'Äiá»u hÃ²a': <Wind size={10} />,
-  'Báº£ng tráº¯ng': <Square size={10} />,
+  Projector: <Monitor size={10} />,
+  'Air conditioner': <Wind size={10} />,
+  Whiteboard: <Square size={10} />,
 };
 
 interface BookingFormScreenProps {
@@ -32,7 +33,7 @@ export function BookingFormScreen({
 }: BookingFormScreenProps) {
   const [startOpen, setStartOpen] = useState(true);
   const [endOpen, setEndOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(14);
+  const [selectedDate, setSelectedDate] = useState(() => new Date().getDate());
   const [selectedStartTime, setSelectedStartTime] = useState('09:00');
   const [selectedEndTime, setSelectedEndTime] = useState('12:00');
   const [notes, setNotes] = useState('');
@@ -48,10 +49,10 @@ export function BookingFormScreen({
   if (!workspace) {
     return (
       <div style={{ maxWidth: '720px', margin: '80px auto', backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '24px', textAlign: 'center' }}>
-        <p style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>Chua chon workspace</p>
-        <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '18px' }}>Hay quay lai danh sach va chon phong can dat.</p>
+        <p style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>Chưa chọn không gian</p>
+        <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '18px' }}>Hãy quay lại danh sách và chọn không gian cần đặt.</p>
         <button onClick={onBack} style={{ height: '38px', padding: '0 18px', borderRadius: '8px', backgroundColor: '#111111', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}>
-          Quay lai
+          Quay lại
         </button>
       </div>
     );
@@ -61,7 +62,10 @@ export function BookingFormScreen({
   const subtotal = pricePerHour * durationHours;
   const discount = 0;
   const total = calculatePrice(pricePerHour, durationHours, discount);
-  const dateText = `${String(selectedDate).padStart(2, '0')}/05/2026`;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+  const dateText = `${String(selectedDate).padStart(2, '0')}/${currentMonth}/${currentYear}`;
 
   const handleStartToggle = () => {
     setStartOpen((open) => !open);
@@ -87,9 +91,9 @@ export function BookingFormScreen({
       });
 
       await onBookingCompleted();
-      setSuccessMessage(`Dat cho thanh cong. Ma booking: ${booking.id}`);
+      setSuccessMessage(`Đặt chỗ thành công. Mã đặt chỗ: ${booking.id}`);
     } catch (bookingError) {
-      setError(bookingError instanceof Error ? bookingError.message : 'Dat cho that bai');
+      setError(bookingError instanceof Error ? bookingError.message : 'Đặt chỗ không thành công.');
     } finally {
       setSubmitting(false);
     }
@@ -105,9 +109,9 @@ export function BookingFormScreen({
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '20px' }}>
         {[
-          { label: 'Workspace', onClick: onBack, active: false },
-          { label: workspace.name, onClick: onBack, active: false },
-          { label: 'Dat cho', onClick: undefined, active: true },
+          { label: 'Không gian', onClick: onBack, active: false },
+          { label: workspaceNameLabel(workspace.name), onClick: onBack, active: false },
+          { label: 'Đặt chỗ', onClick: undefined, active: true },
         ].map((item, index, items) => (
           <span key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <button
@@ -148,7 +152,7 @@ export function BookingFormScreen({
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
                   <span style={{ fontSize: '16px', fontWeight: '700', color: '#111111', fontFamily: 'DM Sans, sans-serif' }}>
-                    {workspace.name}
+                    {workspaceNameLabel(workspace.name)}
                   </span>
                   <WorkspaceTypeBadge type={workspace.type} />
                 </div>
@@ -156,14 +160,14 @@ export function BookingFormScreen({
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', marginBottom: '4px' }}>
                   <MapPin size={12} style={{ color: '#9CA3AF', marginTop: '2px', flexShrink: 0 }} />
                   <span style={{ fontSize: '12px', color: '#6B7280', fontFamily: 'DM Sans, sans-serif' }}>
-                    {workspace.floor}
+                    {workspaceLocationLabel(workspace.floor)}
                   </span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
                   <Users size={12} style={{ color: '#9CA3AF' }} />
                   <span style={{ fontSize: '12px', color: '#6B7280', fontFamily: 'DM Sans, sans-serif' }}>
-                    Suc chua: {workspace.capacity} nguoi
+                    Sức chứa: {workspace.capacity} người
                   </span>
                 </div>
 
@@ -183,7 +187,7 @@ export function BookingFormScreen({
                         fontFamily: 'DM Sans, sans-serif',
                       }}
                     >
-                      {EQUIPMENT_ICONS[equipment]} {equipment}
+                      {EQUIPMENT_ICONS[equipment]} {equipmentLabel(equipment)}
                     </span>
                   ))}
                 </div>
@@ -196,12 +200,12 @@ export function BookingFormScreen({
             onClick={(event) => event.stopPropagation()}
           >
             <p style={{ fontSize: '15px', fontWeight: '700', color: '#111111', fontFamily: 'DM Sans, sans-serif', marginBottom: '16px' }}>
-              Chon thoi gian
+              Chọn thời gian
             </p>
 
             <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
               <DateTimePicker
-                label="Bat dau"
+                label="Bắt đầu"
                 value={`${dateText}  ${selectedStartTime}`}
                 open={startOpen}
                 onToggle={handleStartToggle}
@@ -211,7 +215,7 @@ export function BookingFormScreen({
                 onSelectTime={setSelectedStartTime}
               />
               <DateTimePicker
-                label="Ket thuc"
+                label="Kết thúc"
                 value={`${dateText}  ${selectedEndTime}`}
                 open={endOpen}
                 onToggle={handleEndToggle}
@@ -238,19 +242,19 @@ export function BookingFormScreen({
                 }}
               >
                 <Clock size={13} />
-                Thoi luong: {durationHours} gio
+                Thời lượng: {durationHours} giờ
               </div>
             </div>
 
             <div style={{ marginTop: '20px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px', fontFamily: 'DM Sans, sans-serif' }}>
-                Ghi chu
+                Ghi chú
               </label>
               <textarea
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 rows={3}
-                placeholder="Yeu cau dac biet..."
+                placeholder="Yêu cầu đặc biệt..."
                 style={{
                   width: '100%',
                   borderRadius: '8px',
@@ -298,5 +302,8 @@ function calculateDurationHours(start: string, end: string) {
 }
 
 function toBackendLocalDateTime(day: number, time: string) {
-  return `2026-05-${String(day).padStart(2, '0')}T${time}:00`;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+  return `${currentYear}-${currentMonth}-${String(day).padStart(2, '0')}T${time}:00`;
 }

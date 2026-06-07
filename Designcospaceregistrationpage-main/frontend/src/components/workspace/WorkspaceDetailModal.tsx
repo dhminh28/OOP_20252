@@ -2,6 +2,12 @@ import { MapPin, Monitor, Printer, Users, Wifi, Wind, X } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { WorkspaceTypeBadge } from '../common/Badge';
 import { vnd } from '../../utils/formatCurrency';
+import {
+  equipmentLabel,
+  workspaceLocationLabel,
+  workspaceNameLabel,
+  workspaceStatusLabel,
+} from '../../utils/displayText';
 import type { Workspace } from '../../types/workspace';
 
 interface WorkspaceDetailModalProps {
@@ -12,15 +18,15 @@ interface WorkspaceDetailModalProps {
 
 const EQUIPMENT_ICONS: Record<string, React.ReactNode> = {
   WiFi: <Wifi size={13} />,
-  'Máy chiếu': <Monitor size={13} />,
-  'Điều hòa': <Wind size={13} />,
-  'In ấn': <Printer size={13} />,
+  Projector: <Monitor size={13} />,
+  'Air conditioner': <Wind size={13} />,
+  Printer: <Printer size={13} />,
 };
 
 const STATUS_CONFIG = {
-  available: { color: '#10B981', label: 'Còn trống' },
-  busy: { color: '#EF4444', label: 'Đang bận' },
-  maintenance: { color: '#9CA3AF', label: 'Bảo trì' },
+  available: { color: '#10B981', label: workspaceStatusLabel('available') },
+  busy: { color: '#EF4444', label: workspaceStatusLabel('busy') },
+  maintenance: { color: '#9CA3AF', label: workspaceStatusLabel('maintenance') },
 };
 
 export function WorkspaceDetailModal({ space, onClose, onBook }: WorkspaceDetailModalProps) {
@@ -32,7 +38,7 @@ export function WorkspaceDetailModal({ space, onClose, onBook }: WorkspaceDetail
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#111111', margin: 0 }}>{space.name}</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#111111', margin: 0 }}>{workspaceNameLabel(space.name)}</h2>
             <WorkspaceTypeBadge type={space.type} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -40,19 +46,24 @@ export function WorkspaceDetailModal({ space, onClose, onBook }: WorkspaceDetail
             <span style={{ fontSize: '13px', color: statusConfig.color, fontWeight: '600' }}>{statusConfig.label}</span>
           </div>
         </div>
-        <button onClick={onClose} style={{ border: 'none', background: 'none', color: '#9CA3AF', cursor: 'pointer', display: 'flex' }}>
+        <button
+          onClick={onClose}
+          title="Đóng"
+          aria-label="Đóng"
+          style={{ border: 'none', background: 'none', color: '#9CA3AF', cursor: 'pointer', display: 'flex' }}
+        >
           <X size={20} />
         </button>
       </div>
 
-      <div style={{ height: '240px', borderRadius: '10px', overflow: 'hidden', backgroundColor: '#E5E7EB', marginBottom: '16px' }}>
-        <img src={space.image} alt={space.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      <div style={{ height: '240px', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#E5E7EB', marginBottom: '16px' }}>
+        <img src={space.image} alt={workspaceNameLabel(space.name)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '7px' }}>
           <MapPin size={15} style={{ color: '#9CA3AF', marginTop: '2px', flexShrink: 0 }} />
-          <span style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.5 }}>{space.floor}</span>
+          <span style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.5 }}>{workspaceLocationLabel(space.floor)}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
           <Users size={15} style={{ color: '#9CA3AF' }} />
@@ -61,7 +72,7 @@ export function WorkspaceDetailModal({ space, onClose, onBook }: WorkspaceDetail
       </div>
 
       <div style={{ marginBottom: '18px' }}>
-        <p style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>Thiết bị có sẵn</p>
+        <p style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>Tiện nghi có sẵn</p>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {space.equipment.map((equipment) => (
             <span
@@ -78,7 +89,7 @@ export function WorkspaceDetailModal({ space, onClose, onBook }: WorkspaceDetail
               }}
             >
               {EQUIPMENT_ICONS[equipment]}
-              {equipment}
+              {equipmentLabel(equipment)}
             </span>
           ))}
         </div>
@@ -87,7 +98,7 @@ export function WorkspaceDetailModal({ space, onClose, onBook }: WorkspaceDetail
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #E5E7EB', paddingTop: '16px' }}>
         <div>
           <p style={{ fontSize: '12px', color: '#9CA3AF', marginBottom: '3px' }}>Giá thuê</p>
-          <p style={{ fontSize: '22px', fontWeight: '700', color: '#111111' }}>₫ {vnd(space.pricePerHour)}/giờ</p>
+          <p style={{ fontSize: '22px', fontWeight: '700', color: '#111111' }}>{vnd(space.pricePerHour)} ₫/giờ</p>
         </div>
         <button
           disabled={isDisabled}

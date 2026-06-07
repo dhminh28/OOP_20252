@@ -13,13 +13,13 @@ interface RevenueChartProps {
 }
 
 export function RevenueChart({ data }: RevenueChartProps) {
-  const chartData = data.length > 0 ? data : [{ period: 'No data', revenue: 0 }];
+  const chartData = data.length > 0 ? data : [{ period: 'Chưa có dữ liệu', revenue: 0 }];
 
   return (
     <div style={{ ...card, padding: '20px', minHeight: '320px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#111111' }}>Revenue by month</h2>
-        <span style={{ fontSize: '12px', color: '#6B7280' }}>Wallet PAYMENT transactions</span>
+        <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#111111' }}>Doanh thu theo tháng</h2>
+        <span style={{ fontSize: '12px', color: '#6B7280' }}>Giao dịch thanh toán qua ví</span>
       </div>
 
       <div style={{ height: '250px' }}>
@@ -33,7 +33,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
               axisLine={false}
               tickFormatter={(value) => `${Math.round(Number(value) / 1_000_000)}m`}
             />
-            <Tooltip formatter={(value) => [`VND ${vnd(Number(value))}`, 'Revenue']} />
+            <Tooltip formatter={(value) => [`${vnd(Number(value))} ₫`, 'Doanh thu']} />
             <Bar dataKey="revenue" fill="#3B82F6" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>

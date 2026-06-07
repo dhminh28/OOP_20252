@@ -10,6 +10,8 @@ public record AdminUserResponse(
         String email,
         String phone,
         UserRole role,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        boolean blocked,
+        String avatar
 ) {
 }

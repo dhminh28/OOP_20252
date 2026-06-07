@@ -21,25 +21,19 @@ const inputBase: React.CSSProperties = {
 interface TopUpModalProps {
   onClose: () => void;
   balance: number;
-  selectedAmount: number;
-  setSelectedAmount: (amount: number) => void;
-  customAmount: string;
-  setCustomAmount: (amount: string) => void;
   onTopUp: (amount: number) => Promise<void>;
 }
 
 export function TopUpModal({
   onClose,
   balance,
-  selectedAmount,
-  setSelectedAmount,
-  customAmount,
-  setCustomAmount,
   onTopUp,
 }: TopUpModalProps) {
+  const [selectedAmount, setSelectedAmount] = useState(500_000);
+  const [customAmount, setCustomAmount] = useState('500.000');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const afterBalance = balance + selectedAmount;
+  const [submitted, setSubmitted] = useState(false);
 
   const pickQuickAmount = (amount: number) => {
     setSelectedAmount(amount);
@@ -48,7 +42,7 @@ export function TopUpModal({
 
   const handleTopUp = async () => {
     if (selectedAmount <= 0) {
-      setError('So tien nap phai lon hon 0');
+      setError('Số tiền nạp phải lớn hơn 0.');
       return;
     }
 
@@ -56,9 +50,9 @@ export function TopUpModal({
     setError(null);
     try {
       await onTopUp(selectedAmount);
-      onClose();
+      setSubmitted(true);
     } catch (topUpError) {
-      setError(topUpError instanceof Error ? topUpError.message : 'Nap tien that bai');
+      setError(topUpError instanceof Error ? topUpError.message : 'Nạp tiền không thành công.');
     } finally {
       setSubmitting(false);
     }
@@ -82,9 +76,9 @@ export function TopUpModal({
             <Wallet size={18} style={{ color: '#3B82F6' }} />
           </div>
           <div>
-            <p style={{ fontSize: '16px', fontWeight: '700', color: '#111111' }}>Nap tien vao vi</p>
+            <p style={{ fontSize: '16px', fontWeight: '700', color: '#111111' }}>Nạp tiền vào ví</p>
             <p style={{ fontSize: '12px', color: '#9CA3AF' }}>
-              So du hien tai: <span style={{ color: '#111111', fontWeight: '600' }}>VND {vnd(balance)}</span>
+              Số dư hiện tại: <span style={{ color: '#111111', fontWeight: '600' }}>{vnd(balance)} ₫</span>
             </p>
           </div>
         </div>
@@ -95,7 +89,45 @@ export function TopUpModal({
 
       <div style={{ height: '1px', backgroundColor: '#F3F4F6', marginBottom: '20px' }} />
 
-      <p style={{ fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '10px' }}>Chon so tien nhanh</p>
+      {submitted ? (
+        <>
+          <div
+            style={{
+              padding: '16px',
+              borderRadius: '8px',
+              border: '1px solid #BFDBFE',
+              backgroundColor: '#EFF6FF',
+              color: '#1E3A8A',
+              fontSize: '13px',
+              lineHeight: 1.6,
+              marginBottom: '18px',
+            }}
+          >
+            <strong style={{ display: 'block', marginBottom: '4px' }}>Đã gửi yêu cầu nạp tiền</strong>
+            Yêu cầu nạp {vnd(selectedAmount)} ₫ đang chờ Admin phê duyệt. Số dư ví chỉ thay đổi sau khi yêu cầu được duyệt.
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              width: '100%',
+              height: '44px',
+              borderRadius: '8px',
+              backgroundColor: '#111111',
+              color: '#FFFFFF',
+              fontSize: '14px',
+              fontWeight: '700',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'DM Sans, sans-serif',
+            }}
+          >
+            Đóng
+          </button>
+        </>
+      ) : (
+        <>
+      <p style={{ fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '10px' }}>Chọn số tiền nhanh</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '16px' }}>
         {QUICK_AMOUNTS.map((amount) => (
           <button
@@ -119,7 +151,7 @@ export function TopUpModal({
         ))}
       </div>
 
-      <p style={{ fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Hoac nhap so tien khac</p>
+      <p style={{ fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Hoặc nhập số tiền khác</p>
       <div style={{ position: 'relative', marginBottom: '16px' }}>
         <span
           style={{
@@ -132,7 +164,7 @@ export function TopUpModal({
             fontFamily: 'DM Sans, sans-serif',
           }}
         >
-          VND
+          ₫
         </span>
         <input
           value={customAmount}
@@ -162,17 +194,16 @@ export function TopUpModal({
 
       <div
         style={{
-          backgroundColor: '#F0FDF4',
+          backgroundColor: '#FFFBEB',
           borderRadius: '8px',
           padding: '12px 14px',
           marginBottom: '16px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          color: '#92400E',
+          fontSize: '12px',
+          lineHeight: 1.5,
         }}
       >
-        <span style={{ fontSize: '13px', color: '#374151', fontFamily: 'DM Sans, sans-serif' }}>So du sau khi nap</span>
-        <span style={{ fontSize: '16px', fontWeight: '700', color: '#111111', fontFamily: 'DM Sans, sans-serif' }}>VND {vnd(afterBalance)}</span>
+        Sau khi gửi yêu cầu, vui lòng thực hiện chuyển khoản và chờ Admin xác nhận. Tiền chưa được cộng ngay vào ví.
       </div>
 
       {error && (
@@ -204,8 +235,10 @@ export function TopUpModal({
           event.currentTarget.style.opacity = '1';
         }}
       >
-        {submitting ? 'Dang nap...' : `Nap VND ${vnd(selectedAmount)}`}
+        {submitting ? 'Đang gửi yêu cầu...' : `Gửi yêu cầu nạp ${vnd(selectedAmount)} ₫`}
       </button>
+        </>
+      )}
     </Modal>
   );
 }

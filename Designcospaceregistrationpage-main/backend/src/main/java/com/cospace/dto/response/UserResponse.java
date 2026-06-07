@@ -7,6 +7,8 @@ public record UserResponse(
         String fullName,
         String email,
         String phone,
-        UserRole role
+        UserRole role,
+        boolean blocked,
+        String avatar
 ) {
 }

@@ -2,14 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, LogOut, User } from 'lucide-react';
 import logo from '../../assets/logo.svg';
 import { vnd } from '../../utils/formatCurrency';
+import { NotificationBell } from './NotificationBell';
+import { useAuth } from '../../hooks/useAuth';
 
 interface NavbarProps {
   activeNav: 'spaces' | 'bookings' | null;
   balance: number;
+  onGoHome: () => void;
   onGoToSpaces: () => void;
   onGoToBookings: () => void;
   onGoToProfile: () => void;
   onOpenWallet: () => void;
+  onNotificationsOpen?: () => void;
   onLogout: () => void;
 }
 
@@ -22,12 +26,15 @@ const card: React.CSSProperties = {
 export function Navbar({
   activeNav,
   balance,
+  onGoHome,
   onGoToSpaces,
   onGoToBookings,
   onGoToProfile,
   onOpenWallet,
+  onNotificationsOpen,
   onLogout,
 }: NavbarProps) {
+  const { user } = useAuth();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -83,7 +90,9 @@ export function Navbar({
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
         <button
-          onClick={onGoToSpaces}
+          onClick={onGoHome}
+          title="Trang chủ"
+          aria-label="Trang chủ"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -103,8 +112,8 @@ export function Navbar({
 
         <div style={{ display: 'flex', gap: '4px' }}>
           {[
-            { key: 'spaces', label: 'Khong gian', onClick: onGoToSpaces },
-            { key: 'bookings', label: 'Dat cho cua toi', onClick: onGoToBookings },
+            { key: 'spaces', label: 'Không gian', onClick: onGoToSpaces },
+            { key: 'bookings', label: 'Đặt chỗ của tôi', onClick: onGoToBookings },
           ].map((item) => (
             <button
               key={item.key}
@@ -132,6 +141,7 @@ export function Navbar({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <NotificationBell onOpen={onNotificationsOpen} />
         <button
           onClick={onOpenWallet}
           style={{
@@ -166,14 +176,14 @@ export function Navbar({
               flexShrink: 0,
             }}
           />
-          VND {vnd(balance)}
+          {vnd(balance)} ₫
         </button>
 
         <div ref={profileMenuRef} style={{ position: 'relative' }}>
           <button
             onClick={() => setProfileMenuOpen((open) => !open)}
-            title="Menu tai khoan"
-            aria-label="Menu tai khoan"
+            title="Menu tài khoản"
+            aria-label="Menu tài khoản"
             aria-expanded={profileMenuOpen}
             style={{
               display: 'flex',
@@ -197,9 +207,18 @@ export function Navbar({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                overflow: 'hidden',
               }}
             >
-              M
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt=""
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                (user?.name?.trim().charAt(0) || 'M').toUpperCase()
+              )}
             </span>
             <ChevronDown
               size={14}
@@ -247,7 +266,7 @@ export function Navbar({
                 }}
               >
                 <User size={15} />
-                Ho so ca nhan
+                Hồ sơ cá nhân
               </button>
               <button
                 onClick={logout}
@@ -270,7 +289,7 @@ export function Navbar({
                 }}
               >
                 <LogOut size={15} />
-                Dang xuat
+                Đăng xuất
               </button>
             </div>
           )}

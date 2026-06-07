@@ -5,6 +5,7 @@ import { BookingHistory } from '../components/profile/BookingHistory';
 import { SpendingChart } from '../components/profile/SpendingChart';
 import { cancelBooking, getMyBookings } from '../services/bookingService';
 import { vnd } from '../utils/formatCurrency';
+import { workspaceNameLabel } from '../utils/displayText';
 import type { Booking, BookingHistoryItem } from '../types/booking';
 
 const card: React.CSSProperties = {
@@ -14,9 +15,9 @@ const card: React.CSSProperties = {
 };
 
 const CHART_SEGMENTS = [
-  { key: 'meeting', label: 'Meeting', color: '#7C3AED', pct: 50, a1: 1, a2: 179 },
-  { key: 'private', label: 'Private', color: '#D97706', pct: 30, a1: 181, a2: 287 },
-  { key: 'hotdesk', label: 'Hot Desk', color: '#3B82F6', pct: 20, a1: 289, a2: 359 },
+  { key: 'meeting', label: 'Phòng họp', color: '#7C3AED', pct: 50, a1: 1, a2: 179 },
+  { key: 'private', label: 'Văn phòng riêng', color: '#D97706', pct: 30, a1: 181, a2: 287 },
+  { key: 'hotdesk', label: 'Bàn làm việc chung', color: '#3B82F6', pct: 20, a1: 289, a2: 359 },
 ];
 
 export function MyBookingsScreen() {
@@ -40,7 +41,7 @@ export function MyBookingsScreen() {
       setBookingTotalPages(result.totalPages);
       setBookingTotalElements(result.totalElements);
     } catch (error) {
-      setBookingError(error instanceof Error ? error.message : 'Khong the tai lich su booking');
+      setBookingError(error instanceof Error ? error.message : 'Không thể tải lịch sử đặt chỗ.');
     } finally {
       setLoadingBookings(false);
     }
@@ -77,10 +78,10 @@ export function MyBookingsScreen() {
       await cancelBooking(cancelTarget.id, cancelReason.trim() || undefined);
       setCancelTarget(null);
       setCancelReason('');
-      setCancelMessage('Da huy lich thanh cong.');
+      setCancelMessage('Đã hủy lịch thành công.');
       await loadBookings();
     } catch (error) {
-      setBookingError(error instanceof Error ? error.message : 'Khong the huy lich');
+      setBookingError(error instanceof Error ? error.message : 'Không thể hủy lịch đặt chỗ.');
     } finally {
       setCancelLoading(false);
     }
@@ -92,10 +93,10 @@ export function MyBookingsScreen() {
     <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '28px 24px 72px' }}>
       <div style={{ marginBottom: '18px' }}>
         <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#111111', marginBottom: '6px' }}>
-          Dat cho cua toi
+          Đặt chỗ của tôi
         </h1>
         <p style={{ fontSize: '14px', color: '#6B7280' }}>
-          Theo doi lich su dat cho, trang thai thanh toan va chi tieu gan day.
+          Theo dõi lịch sử đặt chỗ, trạng thái thanh toán và chi tiêu gần đây.
         </p>
       </div>
 
@@ -114,7 +115,7 @@ export function MyBookingsScreen() {
           {loadingBookings ? (
             <div style={{ ...card, padding: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#6B7280' }}>
               <Loader2 size={16} />
-              Dang tai lich su booking...
+              Đang tải lịch sử đặt chỗ...
             </div>
           ) : (
             <BookingHistory
@@ -131,8 +132,8 @@ export function MyBookingsScreen() {
           <SpendingChart segments={CHART_SEGMENTS} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             {[
-              { label: 'Tong dat cho', main: String(bookingTotalElements) },
-              { label: 'Chi tieu trang nay', main: `VND ${vnd(totalSpent)}` },
+              { label: 'Tổng lượt đặt chỗ', main: String(bookingTotalElements) },
+              { label: 'Chi tiêu trong trang', main: `${vnd(totalSpent)} ₫` },
             ].map((stat) => (
               <div key={stat.label} style={{ ...card, padding: '14px', textAlign: 'center' }}>
                 <p style={{ fontSize: '11px', color: '#9CA3AF', marginBottom: '6px', fontWeight: '500', lineHeight: 1.3 }}>{stat.label}</p>
@@ -165,30 +166,30 @@ export function MyBookingsScreen() {
             </div>
             <div>
               <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111111', marginBottom: '5px' }}>
-                Huy lich dat cho
+                Hủy lịch đặt chỗ
               </h2>
               <p style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.5 }}>
-                Xac nhan huy lich cho {cancelTarget.room}. Sau khi huy, lich se khong con giu cho trong he thong.
+                Xác nhận hủy lịch tại {cancelTarget.room}. Sau khi hủy, hệ thống sẽ không tiếp tục giữ chỗ này.
               </p>
             </div>
           </div>
 
           <div style={{ ...card, padding: '12px', marginBottom: '14px', backgroundColor: '#F9FAFB' }}>
             <div style={{ fontSize: '13px', color: '#374151', marginBottom: '6px' }}>
-              <strong>Thoi gian:</strong> {cancelTarget.time}
+              <strong>Thời gian:</strong> {cancelTarget.time}
             </div>
             <div style={{ fontSize: '13px', color: '#374151' }}>
-              <strong>Chi phi:</strong> {cancelTarget.amt}
+              <strong>Chi phí:</strong> {cancelTarget.amt}
             </div>
           </div>
 
           <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '7px' }}>
-            Ly do huy
+            Lý do hủy
           </label>
           <textarea
             value={cancelReason}
             onChange={(event) => setCancelReason(event.target.value)}
-            placeholder="Vi du: Doi lich hop, khong con nhu cau..."
+            placeholder="Ví dụ: Đổi lịch họp, không còn nhu cầu..."
             rows={4}
             style={{
               width: '100%',
@@ -222,7 +223,7 @@ export function MyBookingsScreen() {
                 fontWeight: '600',
               }}
             >
-              Giu lich
+              Giữ lịch
             </button>
             <button
               onClick={submitCancel}
@@ -244,7 +245,7 @@ export function MyBookingsScreen() {
               }}
             >
               {cancelLoading && <Loader2 size={15} />}
-              {cancelLoading ? 'Dang huy...' : 'Xac nhan huy'}
+              {cancelLoading ? 'Đang hủy...' : 'Xác nhận hủy'}
             </button>
           </div>
         </Modal>
@@ -256,11 +257,11 @@ export function MyBookingsScreen() {
 function mapBookingHistory(booking: Booking): BookingHistoryItem {
   return {
     id: booking.id,
-    room: booking.workspaceName ?? `Workspace #${booking.workspaceId}`,
-    addr: `Workspace #${booking.workspaceId}`,
+    room: workspaceNameLabel(booking.workspaceName ?? `Không gian #${booking.workspaceId}`),
+    addr: `Không gian #${booking.workspaceId}`,
     time: `${formatDateTime(booking.startTime)}-${formatTime(booking.endTime)}`,
-    dur: `${calculateDurationHours(booking.startTime, booking.endTime)} gio`,
-    amt: `VND ${vnd(booking.totalAmount)}`,
+    dur: `${calculateDurationHours(booking.startTime, booking.endTime)} giờ`,
+    amt: `${vnd(booking.totalAmount)} ₫`,
     status: booking.status,
   };
 }

@@ -35,7 +35,14 @@ export interface WorkspaceQuery {
   maxPrice?: number | '';
 }
 
-export async function getAllWorkspaces(query: WorkspaceQuery = {}) {
+interface WorkspaceRequestOptions {
+  publicRequest?: boolean;
+}
+
+export async function getAllWorkspaces(
+  query: WorkspaceQuery = {},
+  options: WorkspaceRequestOptions = {},
+) {
   const params = new URLSearchParams();
   params.set('page', String(query.page ?? 0));
   params.set('size', String(query.size ?? 9));
@@ -52,7 +59,10 @@ export async function getAllWorkspaces(query: WorkspaceQuery = {}) {
     params.set('maxPrice', String(query.maxPrice));
   }
 
-  const page = await apiFetch<PageResponse<BackendWorkspace>>(`/workspaces?${params.toString()}`);
+  const page = await apiFetch<PageResponse<BackendWorkspace>>(
+    `/workspaces?${params.toString()}`,
+    { publicRequest: options.publicRequest },
+  );
   return {
     ...page,
     content: page.content.map(mapWorkspace),
@@ -158,7 +168,7 @@ function mapStatus(status: BackendWorkspace['status']): WorkspaceStatus {
 }
 
 function formatLocation(floor: string | null | undefined, address: string) {
-  return floor ? `Tang ${floor}, ${address}` : address;
+  return floor ? `Tầng ${floor}, ${address}` : address;
 }
 
 function getFallbackImage(type: WorkspaceType) {

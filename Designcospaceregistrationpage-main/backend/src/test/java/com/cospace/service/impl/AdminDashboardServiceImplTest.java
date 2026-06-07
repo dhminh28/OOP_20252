@@ -16,9 +16,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -67,6 +70,7 @@ class AdminDashboardServiceImplTest {
         when(walletTransactionRepository.sumAmountByType(TransactionType.PAYMENT))
                 .thenReturn(new BigDecimal("2800000"));
         when(bookingRepository.countByStatus(BookingStatus.SUCCESS)).thenReturn(3L);
+        when(bookingRepository.countActiveWorkspacesAt(any(LocalDateTime.class))).thenReturn(2L);
         when(userRepository.count()).thenReturn(7L);
         when(workspaceRepository.count()).thenReturn(5L);
         when(walletTransactionRepository.sumAmountByMonthAndType(TransactionType.PAYMENT))
@@ -78,16 +82,18 @@ class AdminDashboardServiceImplTest {
         assertThat(response.revenue()).isEqualByComparingTo("2800000");
         assertThat(response.totalBookings()).isEqualTo(3);
         assertThat(response.activeMembers()).isEqualTo(7);
-        assertThat(response.occupancyRate()).isEqualTo(60.0);
+        assertThat(response.occupancyRate()).isEqualTo(40.0);
         assertThat(response.monthlyRevenue()).hasSize(6);
         assertThat(response.monthlyRevenue().get(0).period()).isEqualTo("2026-02");
         assertThat(response.bookingStatusSummary()).isEqualTo(bookingStatusSummary);
+        verify(bookingRepository).countActiveWorkspacesAt(any(LocalDateTime.class));
     }
 
     @Test
     void getSummary_whenNoPaymentTransactions_returnsZeroRevenue() {
         when(walletTransactionRepository.sumAmountByType(TransactionType.PAYMENT)).thenReturn(null);
         when(bookingRepository.countByStatus(BookingStatus.SUCCESS)).thenReturn(0L);
+        when(bookingRepository.countActiveWorkspacesAt(any(LocalDateTime.class))).thenReturn(0L);
         when(userRepository.count()).thenReturn(1L);
         when(workspaceRepository.count()).thenReturn(0L);
         when(walletTransactionRepository.sumAmountByMonthAndType(TransactionType.PAYMENT)).thenReturn(List.of());
@@ -98,5 +104,22 @@ class AdminDashboardServiceImplTest {
         assertThat(response.revenue()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(response.occupancyRate()).isZero();
         assertThat(response.monthlyRevenue()).isEmpty();
+    }
+
+    @Test
+    void getSummary_whenActiveWorkspaceCountIsUnexpectedlyHigh_capsOccupancyAtOneHundredPercent() {
+        when(walletTransactionRepository.sumAmountByType(TransactionType.PAYMENT))
+                .thenReturn(BigDecimal.ZERO);
+        when(bookingRepository.countByStatus(BookingStatus.SUCCESS)).thenReturn(8L);
+        when(bookingRepository.countActiveWorkspacesAt(any(LocalDateTime.class))).thenReturn(8L);
+        when(userRepository.count()).thenReturn(1L);
+        when(workspaceRepository.count()).thenReturn(5L);
+        when(walletTransactionRepository.sumAmountByMonthAndType(TransactionType.PAYMENT))
+                .thenReturn(List.of());
+        when(bookingRepository.countGroupByStatus()).thenReturn(List.of());
+
+        DashboardSummaryResponse response = adminDashboardService.getSummary();
+
+        assertThat(response.occupancyRate()).isEqualTo(100.0);
     }
 }

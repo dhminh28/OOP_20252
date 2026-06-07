@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -52,7 +53,9 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         }
         long successfulBookings = bookingRepository.countByStatus(BookingStatus.SUCCESS);
         long registeredUsers = userRepository.count();
-        double occupancyRate = calculateOccupancyRate(successfulBookings, workspaceRepository.count());
+        LocalDateTime now = LocalDateTime.now();
+        long activeWorkspaces = bookingRepository.countActiveWorkspacesAt(now);
+        double occupancyRate = calculateOccupancyRate(activeWorkspaces, workspaceRepository.count());
         List<MonthlyRevenueResponse> monthlyRevenue = lastSixMonths(
                 walletTransactionRepository.sumAmountByMonthAndType(TransactionType.PAYMENT)
         );
@@ -82,11 +85,12 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 .map(this::toAdminUserResponse);
     }
 
-    private double calculateOccupancyRate(long successfulBookings, long totalWorkspaces) {
+    private double calculateOccupancyRate(long activeWorkspaces, long totalWorkspaces) {
         if (totalWorkspaces == 0) {
             return 0;
         }
-        BigDecimal rate = BigDecimal.valueOf(successfulBookings)
+        long boundedActiveWorkspaces = Math.min(activeWorkspaces, totalWorkspaces);
+        BigDecimal rate = BigDecimal.valueOf(boundedActiveWorkspaces)
                 .divide(BigDecimal.valueOf(totalWorkspaces), 4, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
         return rate.doubleValue();
@@ -120,7 +124,9 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 user.getEmail(),
                 user.getPhone(),
                 user.getRole(),
-                user.getCreatedAt()
+                user.getCreatedAt(),
+                user.isBlocked(),
+                user.getAvatar()
         );
     }
 }

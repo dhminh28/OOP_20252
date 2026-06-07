@@ -1,7 +1,15 @@
 package com.cospace.service;
 
-import com.cospace.entity.Booking;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public interface EmailService {
-    void sendBookingConfirmation(Booking booking);
+    void sendBookingConfirmation(
+            String email,
+            Long bookingId,
+            String workspaceName,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            BigDecimal totalAmount
+    );
 }

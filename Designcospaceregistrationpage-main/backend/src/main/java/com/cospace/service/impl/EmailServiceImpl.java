@@ -1,6 +1,5 @@
 package com.cospace.service.impl;
 
-import com.cospace.entity.Booking;
 import com.cospace.service.EmailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +9,9 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Service
 public class EmailServiceImpl implements EmailService {
@@ -29,18 +31,25 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     @Async
-    public void sendBookingConfirmation(Booking booking) {
+    public void sendBookingConfirmation(
+            String email,
+            Long bookingId,
+            String workspaceName,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            BigDecimal totalAmount
+    ) {
         JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
         if (mailSender == null) {
-            LOGGER.warn("Mail sender is not configured; skipped booking confirmation email for booking {}", booking.getId());
+            LOGGER.warn("Mail sender is not configured; skipped booking confirmation email for booking {}", bookingId);
             return;
         }
 
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromAddress);
-            message.setTo(booking.getMember().getEmail());
-            message.setSubject("CoSpace booking confirmation #" + booking.getId());
+            message.setTo(email);
+            message.setSubject("CoSpace booking confirmation #" + bookingId);
             message.setText("""
                     Your CoSpace booking has been confirmed.
 
@@ -51,14 +60,14 @@ public class EmailServiceImpl implements EmailService {
 
                     Thank you for using CoSpace.
                     """.formatted(
-                    booking.getWorkspace().getName(),
-                    booking.getStartTime(),
-                    booking.getEndTime(),
-                    booking.getTotalAmount()
+                    workspaceName,
+                    startTime,
+                    endTime,
+                    totalAmount
             ));
             mailSender.send(message);
         } catch (RuntimeException exception) {
-            LOGGER.warn("Failed to send booking confirmation email for booking {}", booking.getId(), exception);
+            LOGGER.warn("Failed to send booking confirmation email for booking {}", bookingId, exception);
         }
     }
 }

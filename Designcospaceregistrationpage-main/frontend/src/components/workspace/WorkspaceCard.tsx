@@ -1,6 +1,12 @@
 import { MapPin, Monitor, Printer, Users, Wifi, Wind } from 'lucide-react';
 import { WorkspaceTypeBadge } from '../common/Badge';
 import { vnd } from '../../utils/formatCurrency';
+import {
+  equipmentLabel,
+  workspaceLocationLabel,
+  workspaceNameLabel,
+  workspaceStatusLabel,
+} from '../../utils/displayText';
 import type { Workspace } from '../../types/workspace';
 
 interface WorkspaceCardProps {
@@ -17,9 +23,9 @@ const EQUIPMENT_ICONS: Record<string, React.ReactNode> = {
 };
 
 const STATUS_CONFIG = {
-  available: { color: '#10B981', label: 'Available' },
-  busy: { color: '#EF4444', label: 'Busy' },
-  maintenance: { color: '#9CA3AF', label: 'Maintenance' },
+  available: { color: '#10B981', label: workspaceStatusLabel('available') },
+  busy: { color: '#EF4444', label: workspaceStatusLabel('busy') },
+  maintenance: { color: '#9CA3AF', label: workspaceStatusLabel('maintenance') },
 };
 
 export function WorkspaceCard({ space, onBook, onOpenDetail }: WorkspaceCardProps) {
@@ -65,7 +71,7 @@ export function WorkspaceCard({ space, onBook, onOpenDetail }: WorkspaceCardProp
 
       <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
         <p style={{ fontSize: '16px', fontWeight: '700', color: '#111111', fontFamily: 'DM Sans, sans-serif', margin: 0 }}>
-          {space.name}
+          {workspaceNameLabel(space.name)}
         </p>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
@@ -81,7 +87,7 @@ export function WorkspaceCard({ space, onBook, onOpenDetail }: WorkspaceCardProp
               flex: 1,
             }}
           >
-            {space.floor}
+            {workspaceLocationLabel(space.floor)}
           </span>
         </div>
 
@@ -89,11 +95,11 @@ export function WorkspaceCard({ space, onBook, onOpenDetail }: WorkspaceCardProp
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
             <Users size={13} style={{ color: '#9CA3AF', flexShrink: 0 }} />
             <span style={{ fontSize: '13px', color: '#6B7280', fontFamily: 'DM Sans, sans-serif' }}>
-              {space.capacity} people
+              {space.capacity} người
             </span>
           </div>
           <span style={{ fontSize: '14px', fontWeight: '700', color: isDisabled ? '#9CA3AF' : '#111111', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}>
-            VND {vnd(space.pricePerHour)}/h
+            {vnd(space.pricePerHour)} ₫/giờ
           </span>
         </div>
 
@@ -114,7 +120,7 @@ export function WorkspaceCard({ space, onBook, onOpenDetail }: WorkspaceCardProp
               }}
             >
               {EQUIPMENT_ICONS[equipment]}
-              {equipment}
+              {equipmentLabel(equipment)}
             </span>
           ))}
         </div>
@@ -161,7 +167,7 @@ export function WorkspaceCard({ space, onBook, onOpenDetail }: WorkspaceCardProp
             }
           }}
         >
-          {isDisabled ? statusConfig.label : 'Book now'}
+          {isDisabled ? statusConfig.label : 'Đặt ngay'}
         </button>
       </div>
     </div>

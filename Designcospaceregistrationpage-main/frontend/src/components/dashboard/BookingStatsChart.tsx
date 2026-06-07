@@ -1,5 +1,6 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import type { BookingStatusSummary } from '../../services/adminService';
+import { bookingStatusLabel } from '../../utils/displayText';
 
 const card: React.CSSProperties = {
   backgroundColor: '#FFFFFF',
@@ -24,8 +25,8 @@ export function BookingStatsChart({ data }: BookingStatsChartProps) {
   return (
     <div style={{ ...card, padding: '20px', minHeight: '320px' }}>
       <div style={{ marginBottom: '14px' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#111111' }}>Booking status</h2>
-        <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Grouped from live booking records</p>
+        <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#111111' }}>Trạng thái đặt chỗ</h2>
+        <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Tổng hợp từ dữ liệu đặt chỗ thực tế</p>
       </div>
 
       <div style={{ height: '190px' }}>
@@ -43,7 +44,7 @@ export function BookingStatsChart({ data }: BookingStatsChartProps) {
                 <Cell key={item.status} fill={COLORS[item.status]} />
               ))}
             </Pie>
-            <Tooltip formatter={(value, name) => [value, String(name)]} />
+            <Tooltip formatter={(value, name) => [value, bookingStatusLabel(String(name))]} />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -52,7 +53,7 @@ export function BookingStatsChart({ data }: BookingStatsChartProps) {
         {chartData.map((item) => (
           <div key={item.status} style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: '#374151' }}>
             <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: COLORS[item.status] }} />
-            <span>{item.status}</span>
+            <span>{bookingStatusLabel(item.status)}</span>
             <strong style={{ marginLeft: 'auto' }}>{item.count}</strong>
           </div>
         ))}

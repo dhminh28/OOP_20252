@@ -5,6 +5,7 @@ interface AuthContextValue {
   user: User | null;
   token: string | null;
   setSession: (user: User, token: string) => void;
+  updateUser: (user: User) => void;
   clearSession: () => void;
 }
 
@@ -26,6 +27,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(nextToken);
         localStorage.setItem('user', JSON.stringify(nextUser));
         localStorage.setItem('token', nextToken);
+      },
+      updateUser(nextUser) {
+        setUser(nextUser);
+        localStorage.setItem('user', JSON.stringify(nextUser));
       },
       clearSession() {
         setUser(null);

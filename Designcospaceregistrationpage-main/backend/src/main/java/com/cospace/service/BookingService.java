@@ -11,4 +11,6 @@ public interface BookingService {
     Page<BookingResponse> getMyBookings(Long memberId, Pageable pageable);
 
     BookingResponse cancel(Long memberId, Long bookingId, String reason);
+
+    BookingResponse cancelByAdmin(Long bookingId, String reason);
 }

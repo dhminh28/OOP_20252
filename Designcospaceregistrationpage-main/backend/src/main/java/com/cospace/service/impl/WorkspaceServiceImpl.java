@@ -7,6 +7,7 @@ import com.cospace.entity.HotDesk;
 import com.cospace.entity.MeetingRoom;
 import com.cospace.entity.PrivateOffice;
 import com.cospace.entity.Workspace;
+import com.cospace.enums.WorkspaceStatus;
 import com.cospace.enums.WorkspaceType;
 import com.cospace.exception.BusinessException;
 import com.cospace.exception.ResourceNotFoundException;
@@ -90,7 +91,11 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         if (!workspaceRepository.existsById(id)) {
             throw new ResourceNotFoundException("Workspace not found");
         }
-        workspaceRepository.deleteById(id);
+
+        Workspace workspace = workspaceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
+        workspace.setStatus(WorkspaceStatus.ARCHIVED);
+        workspaceRepository.save(workspace);
     }
 
     private Workspace createWorkspaceByType(WorkspaceType type) {

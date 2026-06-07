@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navbar } from '../components/common/Navbar';
 import { TopUpModal } from '../components/profile/TopUpModal';
 import { RegisterScreen } from '../pages/RegisterScreen';
@@ -8,25 +8,53 @@ import { BookingFormScreen } from '../pages/BookingFormScreen';
 import { AdminDashboard } from '../pages/AdminDashboard';
 import { ProfileScreen } from '../pages/ProfileScreen';
 import { MyBookingsScreen } from '../pages/MyBookingsScreen';
+import { HomeScreen } from '../pages/HomeScreen';
 import { getBalance, recharge } from '../services/walletService';
+import { logout } from '../services/authService';
 import { useAuth } from '../hooks/useAuth';
 import type { Workspace } from '../types/workspace';
 
-type ActiveScreen = 'register' | 'login' | 'spaces' | 'my-bookings' | 'profile' | 'booking-form' | 'admin';
+type ActiveScreen = 'home' | 'register' | 'login' | 'spaces' | 'my-bookings' | 'profile' | 'booking-form' | 'admin';
+
+const ACTIVE_SCREENS: ActiveScreen[] = [
+  'home',
+  'register',
+  'login',
+  'spaces',
+  'my-bookings',
+  'profile',
+  'booking-form',
+  'admin',
+];
+
+function getInitialActiveScreen(): ActiveScreen {
+  const storedScreen = sessionStorage.getItem('activeScreen');
+  return ACTIVE_SCREENS.includes(storedScreen as ActiveScreen)
+    ? (storedScreen as ActiveScreen)
+    : 'home';
+}
 
 export default function App() {
-  const { token, clearSession } = useAuth();
+  const { user, token, clearSession } = useAuth();
+  const skipActiveScreenPersistence = useRef(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
-  const [selectedAmount, setSelectedAmount] = useState(500_000);
-  const [customAmount, setCustomAmount] = useState('500.000');
-  const [activeScreen, setActiveScreen] = useState<ActiveScreen>(() => (token ? 'spaces' : 'login'));
+  const [activeScreen, setActiveScreen] = useState<ActiveScreen>(getInitialActiveScreen);
   const [balance, setBalance] = useState(0);
   const [walletError, setWalletError] = useState<string | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
 
-  const showMemberShell = !['admin', 'register', 'login'].includes(activeScreen);
+  const showMemberShell = !['home', 'admin', 'register', 'login'].includes(activeScreen);
   const activeNav = activeScreen === 'my-bookings' ? 'bookings' : activeScreen === 'spaces' || activeScreen === 'booking-form' ? 'spaces' : null;
+
+  useEffect(() => {
+    if (skipActiveScreenPersistence.current) {
+      skipActiveScreenPersistence.current = false;
+      return;
+    }
+
+    sessionStorage.setItem('activeScreen', activeScreen);
+  }, [activeScreen]);
 
   const refreshWallet = async () => {
     if (!token) {
@@ -40,7 +68,7 @@ export default function App() {
       const wallet = await getBalance();
       setBalance(wallet.balance);
     } catch (error) {
-      setWalletError(error instanceof Error ? error.message : 'Khong the tai so du vi');
+      setWalletError(error instanceof Error ? error.message : 'Không thể tải số dư ví.');
     } finally {
       setWalletLoading(false);
     }
@@ -68,24 +96,45 @@ export default function App() {
     setActiveScreen('booking-form');
   };
 
-  const handleLogout = () => {
-    clearSession();
-    setSelectedWorkspace(null);
-    setShowTopUpModal(false);
-    setActiveScreen('login');
+  const handleLogout = async () => {
+    try {
+      if (token) {
+        await logout();
+      }
+    } catch {
+      // Local logout must still complete when the backend is temporarily unavailable.
+    } finally {
+      skipActiveScreenPersistence.current = true;
+      sessionStorage.removeItem('activeScreen');
+      clearSession();
+      setSelectedWorkspace(null);
+      setShowTopUpModal(false);
+      setActiveScreen('home');
+    }
   };
 
   const handleTopUp = async (amount: number) => {
-    const wallet = await recharge(amount);
-    setBalance(wallet.balance);
+    await recharge(amount);
   };
 
   return (
     <>
+      {activeScreen === 'home' && (
+        <HomeScreen
+          user={user}
+          onLogin={() => setActiveScreen('login')}
+          onRegister={() => setActiveScreen('register')}
+          onEnterMember={() => setActiveScreen('spaces')}
+          onEnterAdmin={() => setActiveScreen('admin')}
+          onBookWorkspace={openBookingForm}
+        />
+      )}
+
       {activeScreen === 'register' && (
         <RegisterScreen
           onRegister={() => setActiveScreen('spaces')}
           onSwitchToLogin={() => setActiveScreen('login')}
+          onGoHome={() => setActiveScreen('home')}
         />
       )}
 
@@ -94,11 +143,12 @@ export default function App() {
           onLogin={() => setActiveScreen('spaces')}
           onAdminLogin={() => setActiveScreen('admin')}
           onSwitchToRegister={() => setActiveScreen('register')}
+          onGoHome={() => setActiveScreen('home')}
         />
       )}
 
       {activeScreen === 'admin' && (
-        <AdminDashboard onLogout={handleLogout} />
+        <AdminDashboard onLogout={handleLogout} onGoHome={() => setActiveScreen('home')} />
       )}
 
       {showMemberShell && (
@@ -106,10 +156,12 @@ export default function App() {
           <Navbar
             activeNav={activeNav}
             balance={balance}
+            onGoHome={() => setActiveScreen('home')}
             onGoToSpaces={() => setActiveScreen('spaces')}
             onGoToBookings={() => setActiveScreen('my-bookings')}
             onGoToProfile={() => setActiveScreen('profile')}
             onOpenWallet={() => setShowTopUpModal(true)}
+            onNotificationsOpen={() => void refreshWallet()}
             onLogout={handleLogout}
           />
 
@@ -147,10 +199,6 @@ export default function App() {
         <TopUpModal
           onClose={() => setShowTopUpModal(false)}
           balance={balance}
-          selectedAmount={selectedAmount}
-          setSelectedAmount={setSelectedAmount}
-          customAmount={customAmount}
-          setCustomAmount={setCustomAmount}
           onTopUp={handleTopUp}
         />
       )}

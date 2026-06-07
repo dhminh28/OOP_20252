@@ -38,9 +38,9 @@ export function BookingHistory({ bookings, activePage, totalPages, onPageChange,
   return (
     <div style={{ ...card, padding: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <span style={{ fontSize: '15px', fontWeight: '700', color: '#111111' }}>Booking history</span>
+        <span style={{ fontSize: '15px', fontWeight: '700', color: '#111111' }}>Lịch sử đặt chỗ</span>
         <span style={{ fontSize: '12px', color: '#6B7280' }}>
-          Page {safeTotalPages === 0 ? 0 : activePage} of {safeTotalPages}
+          Trang {safeTotalPages === 0 ? 0 : activePage} / {safeTotalPages}
         </span>
       </div>
 
@@ -48,7 +48,7 @@ export function BookingHistory({ bookings, activePage, totalPages, onPageChange,
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              {['Room', 'Address', 'Time', 'Duration', 'Amount', 'Status', 'Action'].map((heading) => (
+              {['Không gian', 'Địa chỉ', 'Thời gian', 'Thời lượng', 'Chi phí', 'Trạng thái', 'Thao tác'].map((heading) => (
                 <th
                   key={heading}
                   style={{
@@ -107,7 +107,7 @@ export function BookingHistory({ bookings, activePage, totalPages, onPageChange,
                       fontWeight: '600',
                     }}
                   >
-                    {booking.status === 'cancelled' ? 'Da huy' : 'Huy lich'}
+                    {booking.status === 'cancelled' ? 'Đã hủy' : 'Hủy lịch'}
                   </button>
                 </td>
               </tr>
@@ -118,7 +118,7 @@ export function BookingHistory({ bookings, activePage, totalPages, onPageChange,
 
       {bookings.length === 0 && (
         <div style={{ padding: '36px 0', textAlign: 'center', color: '#9CA3AF', fontSize: '13px' }}>
-          No bookings found.
+          Chưa có lịch đặt chỗ nào.
         </div>
       )}
 

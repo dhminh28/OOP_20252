@@ -4,7 +4,6 @@ import { WorkspaceCard } from '../components/workspace/WorkspaceCard';
 import { WorkspaceDetailModal } from '../components/workspace/WorkspaceDetailModal';
 import { WorkspaceFilter, type WorkspaceFilterType } from '../components/workspace/WorkspaceFilter';
 import { getAllWorkspaces } from '../services/workspaceService';
-import { vnd } from '../utils/formatCurrency';
 import type { Workspace } from '../types/workspace';
 
 const FILTERS: WorkspaceFilterType[] = ['All', 'Hot Desk', 'Meeting Room', 'Private Office'];
@@ -52,7 +51,7 @@ export function SpacesScreen({ onBook }: { onBook?: (workspace: Workspace) => vo
       setTotalPages(result.totalPages);
       setTotalElements(result.totalElements);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Unable to load workspaces');
+      setError(loadError instanceof Error ? loadError.message : 'Không thể tải danh sách không gian.');
     } finally {
       setLoading(false);
     }
@@ -97,10 +96,10 @@ export function SpacesScreen({ onBook }: { onBook?: (workspace: Workspace) => vo
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px', marginBottom: '20px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#111111', fontFamily: 'DM Sans, sans-serif', margin: 0, letterSpacing: '0' }}>
-            Workspaces
+            Không gian làm việc
           </h1>
           <p style={{ fontSize: '14px', color: '#6B7280', fontFamily: 'DM Sans, sans-serif', margin: '4px 0 0' }}>
-            Showing {visibleSpaces.length} of {totalElements} matching workspace records.
+            Hiển thị {visibleSpaces.length} trong tổng số {totalElements} không gian phù hợp.
           </p>
         </div>
 
@@ -120,7 +119,7 @@ export function SpacesScreen({ onBook }: { onBook?: (workspace: Workspace) => vo
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search current page..."
+              placeholder="Tìm trong trang hiện tại..."
               style={{ ...inputStyle, width: '100%', paddingLeft: '34px' }}
             />
           </div>
@@ -128,7 +127,8 @@ export function SpacesScreen({ onBook }: { onBook?: (workspace: Workspace) => vo
           <button
             onClick={() => void loadSpaces(currentPage)}
             disabled={loading}
-            title="Refresh"
+            title="Tải lại"
+            aria-label="Tải lại danh sách không gian"
             style={{
               width: '38px',
               height: '38px',
@@ -169,7 +169,7 @@ export function SpacesScreen({ onBook }: { onBook?: (workspace: Workspace) => vo
             setMinCapacity(event.target.value === '' ? '' : Number(event.target.value));
             setCurrentPage(1);
           }}
-          placeholder="Min capacity"
+          placeholder="Sức chứa từ"
           style={{ ...inputStyle, width: '100%' }}
         />
         <input
@@ -181,7 +181,7 @@ export function SpacesScreen({ onBook }: { onBook?: (workspace: Workspace) => vo
             setMaxPrice(event.target.value === '' ? '' : Number(event.target.value));
             setCurrentPage(1);
           }}
-          placeholder={`Max price (${vnd(500000)})`}
+          placeholder="Giá tối đa"
           style={{ ...inputStyle, width: '100%' }}
         />
       </div>
@@ -195,7 +195,7 @@ export function SpacesScreen({ onBook }: { onBook?: (workspace: Workspace) => vo
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '260px', color: '#6B7280', gap: '10px' }}>
           <Loader2 size={18} />
-          <span>Loading workspaces...</span>
+          <span>Đang tải danh sách không gian...</span>
         </div>
       ) : visibleSpaces.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '20px' }}>
@@ -210,7 +210,7 @@ export function SpacesScreen({ onBook }: { onBook?: (workspace: Workspace) => vo
         </div>
       ) : (
         <div style={{ textAlign: 'center', padding: '64px 0', color: '#9CA3AF', fontSize: '15px', fontFamily: 'DM Sans, sans-serif' }}>
-          No workspace matched the current filters.
+          Không có không gian nào phù hợp với bộ lọc hiện tại.
         </div>
       )}
 
@@ -223,7 +223,7 @@ export function SpacesScreen({ onBook }: { onBook?: (workspace: Workspace) => vo
           <ChevronLeft size={14} />
         </button>
         <span style={{ fontSize: '13px', color: '#6B7280', minWidth: '110px', textAlign: 'center' }}>
-          Page {totalPages === 0 ? 0 : currentPage} of {totalPages}
+          Trang {totalPages === 0 ? 0 : currentPage} / {totalPages}
         </span>
         <button
           onClick={() => handlePageChange(currentPage + 1)}

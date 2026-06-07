@@ -40,6 +40,12 @@ public abstract class User {
     @Column(nullable = false)
     private UserRole role;
 
+    @Column(nullable = false)
+    private boolean isBlocked;
+
+    @Column(columnDefinition = "TEXT")
+    private String avatar;
+
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Long getId() {
@@ -88,5 +94,21 @@ public abstract class User {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isBlocked() {
+        return isBlocked;
+    }
+
+    public void setBlocked(boolean blocked) {
+        isBlocked = blocked;
+    }
+
+    public String getAvatar() {
+        return avatar;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
     }
 }

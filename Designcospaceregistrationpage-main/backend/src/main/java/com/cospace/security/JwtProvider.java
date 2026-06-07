@@ -57,6 +57,10 @@ public class JwtProvider {
         return getClaims(token).getSubject();
     }
 
+    public Date getExpiration(String token) {
+        return getClaims(token).getExpiration();
+    }
+
     public CurrentUser getCurrentUser(String token) {
         Claims claims = getClaims(token);
         Object rawUserId = claims.get("userId");
