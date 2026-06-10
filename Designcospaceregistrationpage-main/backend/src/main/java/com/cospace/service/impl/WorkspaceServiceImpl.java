@@ -22,7 +22,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class WorkspaceServiceImpl implements WorkspaceService {
@@ -57,6 +62,9 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     public WorkspaceResponse getById(Long id) {
         Workspace workspace = workspaceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
+        if (workspace.getStatus() == WorkspaceStatus.ARCHIVED) {
+            throw new ResourceNotFoundException("Workspace not found");
+        }
 
         return toResponse(workspace);
     }
@@ -117,14 +125,39 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         }
         workspace.setImageUrl(request.imageUrl());
 
-        workspace.getEquipment().clear();
-        List<String> equipmentNames = request.equipment() == null ? List.of() : request.equipment();
+        syncEquipment(workspace, request.equipment());
+    }
+
+    private void syncEquipment(Workspace workspace, List<String> requestedEquipment) {
+        Map<String, String> requestedByKey = new LinkedHashMap<>();
+        List<String> equipmentNames = requestedEquipment == null ? List.of() : requestedEquipment;
         for (String equipmentName : equipmentNames) {
+            if (equipmentName == null || equipmentName.isBlank()) {
+                continue;
+            }
+            String trimmedName = equipmentName.trim();
+            requestedByKey.putIfAbsent(equipmentKey(trimmedName), trimmedName);
+        }
+
+        Set<String> retainedKeys = new HashSet<>();
+        workspace.getEquipment().removeIf(equipment -> {
+            String key = equipmentKey(equipment.getName());
+            return !requestedByKey.containsKey(key) || !retainedKeys.add(key);
+        });
+
+        for (Map.Entry<String, String> requested : requestedByKey.entrySet()) {
+            if (retainedKeys.contains(requested.getKey())) {
+                continue;
+            }
             Equipment equipment = new Equipment();
-            equipment.setName(equipmentName);
+            equipment.setName(requested.getValue());
             equipment.setWorkspace(workspace);
             workspace.getEquipment().add(equipment);
         }
+    }
+
+    private String equipmentKey(String name) {
+        return name == null ? "" : name.trim().toLowerCase(Locale.ROOT);
     }
 
     private WorkspaceResponse toResponse(Workspace workspace) {

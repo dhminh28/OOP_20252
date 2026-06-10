@@ -28,4 +28,6 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Long>, Jpa
 
     @EntityGraph(attributePaths = "equipment")
     List<Workspace> findAllByStatusNotOrderByIdAsc(WorkspaceStatus status);
+
+    long countByStatusNot(WorkspaceStatus status);
 }

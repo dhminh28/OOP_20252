@@ -11,6 +11,7 @@ import { MyBookingsScreen } from '../pages/MyBookingsScreen';
 import { HomeScreen } from '../pages/HomeScreen';
 import { getBalance, recharge } from '../services/walletService';
 import { logout } from '../services/authService';
+import { getWorkspaceById } from '../services/workspaceService';
 import { useAuth } from '../hooks/useAuth';
 import type { Workspace } from '../types/workspace';
 
@@ -26,9 +27,11 @@ const ACTIVE_SCREENS: ActiveScreen[] = [
   'booking-form',
   'admin',
 ];
+const ACTIVE_SCREEN_KEY = 'activeScreen';
+const BOOKING_WORKSPACE_ID_KEY = 'bookingWorkspaceId';
 
 function getInitialActiveScreen(): ActiveScreen {
-  const storedScreen = sessionStorage.getItem('activeScreen');
+  const storedScreen = sessionStorage.getItem(ACTIVE_SCREEN_KEY);
   return ACTIVE_SCREENS.includes(storedScreen as ActiveScreen)
     ? (storedScreen as ActiveScreen)
     : 'home';
@@ -43,6 +46,9 @@ export default function App() {
   const [walletError, setWalletError] = useState<string | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
+  const [restoringBookingWorkspace, setRestoringBookingWorkspace] = useState(
+    () => getInitialActiveScreen() === 'booking-form',
+  );
 
   const showMemberShell = !['home', 'admin', 'register', 'login'].includes(activeScreen);
   const activeNav = activeScreen === 'my-bookings' ? 'bookings' : activeScreen === 'spaces' || activeScreen === 'booking-form' ? 'spaces' : null;
@@ -53,8 +59,55 @@ export default function App() {
       return;
     }
 
-    sessionStorage.setItem('activeScreen', activeScreen);
+    sessionStorage.setItem(ACTIVE_SCREEN_KEY, activeScreen);
   }, [activeScreen]);
+
+  useEffect(() => {
+    if (activeScreen !== 'booking-form' || selectedWorkspace) {
+      setRestoringBookingWorkspace(false);
+      return;
+    }
+
+    const storedWorkspaceId = Number(sessionStorage.getItem(BOOKING_WORKSPACE_ID_KEY));
+    if (!Number.isInteger(storedWorkspaceId) || storedWorkspaceId <= 0) {
+      sessionStorage.removeItem(BOOKING_WORKSPACE_ID_KEY);
+      setRestoringBookingWorkspace(false);
+      setActiveScreen('spaces');
+      return;
+    }
+
+    let cancelled = false;
+    setRestoringBookingWorkspace(true);
+    void getWorkspaceById(storedWorkspaceId)
+      .then((workspace) => {
+        if (!cancelled) {
+          setSelectedWorkspace(workspace);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          sessionStorage.removeItem(BOOKING_WORKSPACE_ID_KEY);
+          setActiveScreen('spaces');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setRestoringBookingWorkspace(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeScreen, selectedWorkspace]);
+
+  useEffect(() => {
+    if (activeScreen === 'booking-form' || !selectedWorkspace) {
+      return;
+    }
+    sessionStorage.removeItem(BOOKING_WORKSPACE_ID_KEY);
+    setSelectedWorkspace(null);
+  }, [activeScreen, selectedWorkspace]);
 
   const refreshWallet = async () => {
     if (!token) {
@@ -78,6 +131,7 @@ export default function App() {
     const handleUnauthorized = () => {
       clearSession();
       setSelectedWorkspace(null);
+      sessionStorage.removeItem(BOOKING_WORKSPACE_ID_KEY);
       setActiveScreen('login');
     };
 
@@ -93,7 +147,14 @@ export default function App() {
 
   const openBookingForm = (workspace: Workspace) => {
     setSelectedWorkspace(workspace);
+    sessionStorage.setItem(BOOKING_WORKSPACE_ID_KEY, String(workspace.id));
     setActiveScreen('booking-form');
+  };
+
+  const leaveBookingForm = () => {
+    sessionStorage.removeItem(BOOKING_WORKSPACE_ID_KEY);
+    setSelectedWorkspace(null);
+    setActiveScreen('spaces');
   };
 
   const handleLogout = async () => {
@@ -105,7 +166,8 @@ export default function App() {
       // Local logout must still complete when the backend is temporarily unavailable.
     } finally {
       skipActiveScreenPersistence.current = true;
-      sessionStorage.removeItem('activeScreen');
+      sessionStorage.removeItem(ACTIVE_SCREEN_KEY);
+      sessionStorage.removeItem(BOOKING_WORKSPACE_ID_KEY);
       clearSession();
       setSelectedWorkspace(null);
       setShowTopUpModal(false);
@@ -176,13 +238,19 @@ export default function App() {
           )}
 
           {activeScreen === 'booking-form' && (
-            <BookingFormScreen
-              workspace={selectedWorkspace}
-              walletBalance={balance}
-              walletLoading={walletLoading}
-              onBookingCompleted={refreshWallet}
-              onBack={() => setActiveScreen('spaces')}
-            />
+            restoringBookingWorkspace ? (
+              <div style={{ padding: '80px 24px', textAlign: 'center', color: '#6B7280' }}>
+                Đang khôi phục thông tin đặt chỗ...
+              </div>
+            ) : (
+              <BookingFormScreen
+                workspace={selectedWorkspace}
+                walletBalance={balance}
+                walletLoading={walletLoading}
+                onBookingCompleted={refreshWallet}
+                onBack={leaveBookingForm}
+              />
+            )
           )}
 
           {activeScreen === 'profile' && (

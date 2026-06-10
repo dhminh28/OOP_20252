@@ -9,6 +9,7 @@ import com.cospace.entity.Booking;
 import com.cospace.entity.User;
 import com.cospace.enums.BookingStatus;
 import com.cospace.enums.TransactionType;
+import com.cospace.enums.WorkspaceStatus;
 import com.cospace.repository.BookingRepository;
 import com.cospace.repository.UserRepository;
 import com.cospace.repository.WalletTransactionRepository;
@@ -55,7 +56,8 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         long registeredUsers = userRepository.count();
         LocalDateTime now = LocalDateTime.now();
         long activeWorkspaces = bookingRepository.countActiveWorkspacesAt(now);
-        double occupancyRate = calculateOccupancyRate(activeWorkspaces, workspaceRepository.count());
+        long activeWorkspaceInventory = workspaceRepository.countByStatusNot(WorkspaceStatus.ARCHIVED);
+        double occupancyRate = calculateOccupancyRate(activeWorkspaces, activeWorkspaceInventory);
         List<MonthlyRevenueResponse> monthlyRevenue = lastSixMonths(
                 walletTransactionRepository.sumAmountByMonthAndType(TransactionType.PAYMENT)
         );

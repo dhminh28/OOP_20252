@@ -76,6 +76,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                 com.cospace.enums.BookingStatus.SUCCESS,
                 com.cospace.enums.BookingStatus.CONFIRMED
             )
+              and booking.workspace.status <> com.cospace.enums.WorkspaceStatus.ARCHIVED
               and :now between booking.startTime and booking.endTime
             """)
     long countActiveWorkspacesAt(@Param("now") LocalDateTime now);

@@ -5,6 +5,7 @@ import com.cospace.dto.response.DashboardSummaryResponse;
 import com.cospace.dto.response.MonthlyRevenueResponse;
 import com.cospace.enums.BookingStatus;
 import com.cospace.enums.TransactionType;
+import com.cospace.enums.WorkspaceStatus;
 import com.cospace.repository.BookingRepository;
 import com.cospace.repository.UserRepository;
 import com.cospace.repository.WalletTransactionRepository;
@@ -72,7 +73,7 @@ class AdminDashboardServiceImplTest {
         when(bookingRepository.countByStatus(BookingStatus.SUCCESS)).thenReturn(3L);
         when(bookingRepository.countActiveWorkspacesAt(any(LocalDateTime.class))).thenReturn(2L);
         when(userRepository.count()).thenReturn(7L);
-        when(workspaceRepository.count()).thenReturn(5L);
+        when(workspaceRepository.countByStatusNot(WorkspaceStatus.ARCHIVED)).thenReturn(5L);
         when(walletTransactionRepository.sumAmountByMonthAndType(TransactionType.PAYMENT))
                 .thenReturn(monthlyRevenue);
         when(bookingRepository.countGroupByStatus()).thenReturn(bookingStatusSummary);
@@ -95,7 +96,7 @@ class AdminDashboardServiceImplTest {
         when(bookingRepository.countByStatus(BookingStatus.SUCCESS)).thenReturn(0L);
         when(bookingRepository.countActiveWorkspacesAt(any(LocalDateTime.class))).thenReturn(0L);
         when(userRepository.count()).thenReturn(1L);
-        when(workspaceRepository.count()).thenReturn(0L);
+        when(workspaceRepository.countByStatusNot(WorkspaceStatus.ARCHIVED)).thenReturn(0L);
         when(walletTransactionRepository.sumAmountByMonthAndType(TransactionType.PAYMENT)).thenReturn(List.of());
         when(bookingRepository.countGroupByStatus()).thenReturn(List.of());
 
@@ -113,7 +114,7 @@ class AdminDashboardServiceImplTest {
         when(bookingRepository.countByStatus(BookingStatus.SUCCESS)).thenReturn(8L);
         when(bookingRepository.countActiveWorkspacesAt(any(LocalDateTime.class))).thenReturn(8L);
         when(userRepository.count()).thenReturn(1L);
-        when(workspaceRepository.count()).thenReturn(5L);
+        when(workspaceRepository.countByStatusNot(WorkspaceStatus.ARCHIVED)).thenReturn(5L);
         when(walletTransactionRepository.sumAmountByMonthAndType(TransactionType.PAYMENT))
                 .thenReturn(List.of());
         when(bookingRepository.countGroupByStatus()).thenReturn(List.of());

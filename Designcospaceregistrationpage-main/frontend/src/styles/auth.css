@@ -203,6 +203,22 @@
   box-shadow: 0 0 0 3px rgb(79 93 67 / 12%);
 }
 
+.auth-field input[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+
+.auth-field input[aria-invalid='true']:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgb(220 38 38 / 10%);
+}
+
+.auth-field-error {
+  margin: 6px 0 0;
+  color: #b91c1c;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .auth-password {
   position: relative;
 }

@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { ArrowLeft, Building2, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { register } from '../services/authService';
+import { ApiError } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import '../styles/auth.css';
 
@@ -9,6 +10,9 @@ interface RegisterScreenProps {
   onSwitchToLogin: () => void;
   onGoHome: () => void;
 }
+
+type RegisterField = 'fullName' | 'phone' | 'email' | 'password';
+type RegisterFieldErrors = Partial<Record<RegisterField, string>>;
 
 export function RegisterScreen({ onRegister, onSwitchToLogin, onGoHome }: RegisterScreenProps) {
   const { setSession } = useAuth();
@@ -22,6 +26,16 @@ export function RegisterScreen({ onRegister, onSwitchToLogin, onGoHome }: Regist
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>({});
+
+  const clearFieldError = (field: RegisterField) => {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  };
 
   const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -38,6 +52,7 @@ export function RegisterScreen({ onRegister, onSwitchToLogin, onGoHome }: Regist
 
     setLoading(true);
     setError(null);
+    setFieldErrors({});
 
     try {
       const result = await register({
@@ -48,8 +63,17 @@ export function RegisterScreen({ onRegister, onSwitchToLogin, onGoHome }: Regist
       });
       setSession(result.user, result.token);
       onRegister();
-    } catch {
-      setError('Không thể tạo tài khoản. Địa chỉ thư điện tử có thể đã được sử dụng.');
+    } catch (registerError) {
+      if (registerError instanceof ApiError && isRegisterFieldErrors(registerError.data)) {
+        setFieldErrors(registerError.data);
+        setError('Vui lòng kiểm tra lại các trường được đánh dấu.');
+      } else {
+        setError(
+          registerError instanceof Error
+            ? registerError.message
+            : 'Không thể tạo tài khoản. Vui lòng thử lại.',
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -102,11 +126,16 @@ export function RegisterScreen({ onRegister, onSwitchToLogin, onGoHome }: Regist
                 <input
                   id="register-name"
                   value={fullName}
-                  onChange={(event) => setFullName(event.target.value)}
+                  onChange={(event) => {
+                    setFullName(event.target.value);
+                    clearFieldError('fullName');
+                  }}
                   placeholder="Nguyễn Văn A"
                   autoComplete="name"
                   required
+                  aria-invalid={Boolean(fieldErrors.fullName)}
                 />
+                {fieldErrors.fullName && <p className="auth-field-error">{fieldErrors.fullName}</p>}
               </div>
 
               <div className="auth-field">
@@ -114,11 +143,16 @@ export function RegisterScreen({ onRegister, onSwitchToLogin, onGoHome }: Regist
                 <input
                   id="register-phone"
                   value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
+                  onChange={(event) => {
+                    setPhone(event.target.value);
+                    clearFieldError('phone');
+                  }}
                   type="tel"
                   placeholder="0912 345 678"
                   autoComplete="tel"
+                  aria-invalid={Boolean(fieldErrors.phone)}
                 />
+                {fieldErrors.phone && <p className="auth-field-error">{fieldErrors.phone}</p>}
               </div>
             </div>
 
@@ -127,12 +161,17 @@ export function RegisterScreen({ onRegister, onSwitchToLogin, onGoHome }: Regist
               <input
                 id="register-email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  clearFieldError('email');
+                }}
                 type="email"
                 placeholder="Nhập địa chỉ thư điện tử"
                 autoComplete="email"
                 required
+                aria-invalid={Boolean(fieldErrors.email)}
               />
+              {fieldErrors.email && <p className="auth-field-error">{fieldErrors.email}</p>}
             </div>
 
             <div className="auth-field-grid">
@@ -142,12 +181,16 @@ export function RegisterScreen({ onRegister, onSwitchToLogin, onGoHome }: Regist
                   <input
                     id="register-password"
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                    onChange={(event) => {
+                      setPassword(event.target.value);
+                      clearFieldError('password');
+                    }}
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Tạo mật khẩu"
                     autoComplete="new-password"
-                    minLength={6}
+                    minLength={8}
                     required
+                    aria-invalid={Boolean(fieldErrors.password)}
                   />
                   <button
                     type="button"
@@ -158,6 +201,7 @@ export function RegisterScreen({ onRegister, onSwitchToLogin, onGoHome }: Regist
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {fieldErrors.password && <p className="auth-field-error">{fieldErrors.password}</p>}
               </div>
 
               <div className="auth-field">
@@ -170,7 +214,7 @@ export function RegisterScreen({ onRegister, onSwitchToLogin, onGoHome }: Regist
                     type={showConfirm ? 'text' : 'password'}
                     placeholder="Nhập lại mật khẩu"
                     autoComplete="new-password"
-                    minLength={6}
+                    minLength={8}
                     required
                   />
                   <button
@@ -215,5 +259,16 @@ export function RegisterScreen({ onRegister, onSwitchToLogin, onGoHome }: Regist
         </div>
       </section>
     </main>
+  );
+}
+
+function isRegisterFieldErrors(value: unknown): value is RegisterFieldErrors {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const validFields = new Set<RegisterField>(['fullName', 'phone', 'email', 'password']);
+  return Object.entries(value).every(
+    ([field, message]) => validFields.has(field as RegisterField) && typeof message === 'string',
   );
 }

@@ -19,13 +19,18 @@ import com.cospace.service.WalletService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.Optional;
 
@@ -60,16 +65,19 @@ class BookingServiceImplTest {
     private NotificationService notificationService;
 
     private BookingServiceImpl bookingService;
+    private Clock clock;
 
     @BeforeEach
     void setUp() {
+        clock = Clock.fixed(Instant.parse("2026-05-01T00:00:00Z"), ZoneOffset.UTC);
         bookingService = new BookingServiceImpl(
                 bookingRepository,
                 memberRepository,
                 workspaceRepository,
                 walletService,
                 emailService,
-                notificationService
+                notificationService,
+                clock
         );
     }
 
@@ -173,6 +181,62 @@ class BookingServiceImplTest {
 
         verify(memberRepository, never()).findById(any());
         verify(workspaceRepository, never()).findByIdForUpdate(any());
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    void create_whenStartTimeIsNotInFuture_throwsBusinessExceptionBeforeDatabaseAccess() {
+        LocalDateTime start = LocalDateTime.of(2026, 4, 30, 12, 0);
+        BookingRequest request = new BookingRequest(
+                10L,
+                start,
+                start.plusHours(1),
+                null
+        );
+
+        assertThatThrownBy(() -> bookingService.create(1L, request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Booking start time must be in the future");
+
+        verify(memberRepository, never()).findById(any());
+        verify(workspaceRepository, never()).findByIdForUpdate(any());
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+            value = com.cospace.enums.WorkspaceStatus.class,
+            names = {"BUSY", "MAINTENANCE", "ARCHIVED"}
+    )
+    void create_whenWorkspaceIsUnavailable_rejectsBeforeConflictAndPayment(
+            com.cospace.enums.WorkspaceStatus status
+    ) {
+        Long memberId = 1L;
+        Long workspaceId = 10L;
+        LocalDateTime start = LocalDateTime.of(2026, 5, 14, 9, 0);
+        BookingRequest request = new BookingRequest(
+                workspaceId,
+                start,
+                start.plusHours(1),
+                null
+        );
+        Member member = new Member();
+        Workspace workspace = meetingRoom(workspaceId);
+        workspace.setStatus(status);
+
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(workspaceRepository.findByIdForUpdate(workspaceId))
+                .thenReturn(Optional.of(workspace));
+
+        assertThatThrownBy(() -> bookingService.create(memberId, request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Workspace is not available for booking");
+
+        verify(bookingRepository, never())
+                .existsByWorkspaceIdAndStatusInAndStartTimeLessThanAndEndTimeGreaterThan(
+                        any(), anyCollection(), any(), any()
+                );
+        verify(walletService, never()).deductFunds(any(), any());
         verify(bookingRepository, never()).save(any());
     }
 

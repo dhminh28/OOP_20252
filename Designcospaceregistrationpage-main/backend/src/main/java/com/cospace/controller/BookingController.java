@@ -87,7 +87,7 @@ public class BookingController {
     @PatchMapping("/{id}/cancel")
     @Operation(
             summary = "Cancel a booking",
-            description = "Cancels a booking owned by the authenticated member. Refund behavior will be implemented in a later phase.",
+            description = "Cancels a booking owned by the authenticated member and refunds successful or confirmed bookings to the member wallet.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     required = false,
                     description = "Optional cancellation reason. It is stored in the booking note.",

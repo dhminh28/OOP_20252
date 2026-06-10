@@ -6,6 +6,7 @@ import com.cospace.entity.Booking;
 import com.cospace.entity.Member;
 import com.cospace.entity.Workspace;
 import com.cospace.enums.BookingStatus;
+import com.cospace.enums.WorkspaceStatus;
 import com.cospace.exception.BusinessException;
 import com.cospace.exception.ConflictException;
 import com.cospace.exception.ResourceNotFoundException;
@@ -21,6 +22,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -38,6 +41,7 @@ public class BookingServiceImpl implements BookingService {
     private final WalletService walletService;
     private final EmailService emailService;
     private final NotificationService notificationService;
+    private final Clock clock;
 
     public BookingServiceImpl(
             BookingRepository bookingRepository,
@@ -45,7 +49,8 @@ public class BookingServiceImpl implements BookingService {
             WorkspaceRepository workspaceRepository,
             WalletService walletService,
             EmailService emailService,
-            NotificationService notificationService
+            NotificationService notificationService,
+            Clock clock
     ) {
         this.bookingRepository = bookingRepository;
         this.memberRepository = memberRepository;
@@ -53,6 +58,7 @@ public class BookingServiceImpl implements BookingService {
         this.walletService = walletService;
         this.emailService = emailService;
         this.notificationService = notificationService;
+        this.clock = clock;
     }
 
     @Override
@@ -64,6 +70,9 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
         Workspace workspace = workspaceRepository.findByIdForUpdate(request.workspaceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
+        if (workspace.getStatus() != WorkspaceStatus.AVAILABLE) {
+            throw new BusinessException("Workspace is not available for booking");
+        }
 
         boolean hasConflict = bookingRepository.existsByWorkspaceIdAndStatusInAndStartTimeLessThanAndEndTimeGreaterThan(
                 request.workspaceId(),
@@ -206,6 +215,9 @@ public class BookingServiceImpl implements BookingService {
     private void validateBookingTime(BookingRequest request) {
         if (!request.startTime().isBefore(request.endTime())) {
             throw new BusinessException("Booking start time must be before end time");
+        }
+        if (!request.startTime().isAfter(LocalDateTime.now(clock))) {
+            throw new BusinessException("Booking start time must be in the future");
         }
     }
 

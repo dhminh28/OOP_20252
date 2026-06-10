@@ -13,11 +13,13 @@ type ApiOptions = RequestInit & {
 
 export class ApiError extends Error {
   status: number;
+  data: unknown;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, data: unknown = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.data = data;
   }
 }
 
@@ -61,7 +63,7 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
 
   if (!response.ok) {
     const message = getErrorMessage(payload, response.status);
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, getResponseData(payload));
   }
 
   if (response.status === 204) {
@@ -90,7 +92,11 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
   }
   if (!response.ok) {
     const payload = await parseJson(response);
-    throw new ApiError(getErrorMessage(payload, response.status), response.status);
+    throw new ApiError(
+      getErrorMessage(payload, response.status),
+      response.status,
+      getResponseData(payload),
+    );
   }
   return response.blob();
 }
@@ -118,6 +124,10 @@ function isApiEnvelope<T>(payload: unknown): payload is ApiEnvelope<T> {
   );
 }
 
+function getResponseData(payload: unknown) {
+  return isApiEnvelope<unknown>(payload) ? payload.data : null;
+}
+
 function getErrorMessage(payload: unknown, status: number) {
   let message = '';
 
@@ -138,6 +148,9 @@ function getErrorMessage(payload: unknown, status: number) {
   }
   if (/bad credentials|invalid.*(password|credential)|incorrect.*password/i.test(message)) {
     return 'Địa chỉ thư điện tử hoặc mật khẩu không chính xác.';
+  }
+  if (/email.*already registered|already registered.*email|duplicate.*email/i.test(message)) {
+    return 'Địa chỉ thư điện tử này đã được sử dụng.';
   }
 
   const statusMessages: Record<number, string> = {
